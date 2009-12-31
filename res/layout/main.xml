@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+ <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:addStatesFromChildren="false" android:layout_width="fill_parent" android:layout_height="wrap_content"> 
+
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    	android:orientation="horizontal"
+    	android:layout_width="fill_parent" android:layout_height="fill_parent">
+
+		<TextView android:text="@+string/url" android:id="@+id/tvURL" android:layout_width="50px" android:layout_height="wrap_content"></TextView>
+		<EditText android:id="@+id/url" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_weight=".5"></EditText>
+		<Button android:text="@+string/share" android:id="@+id/shareURL" android:layout_width="60px" android:layout_height="wrap_content"></Button>
+	</LinearLayout>
+	
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    	android:orientation="horizontal"
+    	android:layout_width="fill_parent" android:layout_height="fill_parent">
+	
+		<TextView android:text="@+string/delete" android:id="@+id/tvDelete" android:layout_width="50px" android:layout_height="wrap_content"></TextView>
+		<EditText android:id="@+id/delete" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_weight=".5"></EditText>
+		<Button android:text="@+string/share" android:id="@+id/shareDelete" android:layout_width="60px" android:layout_height="wrap_content"></Button>  
+	</LinearLayout>
+	
+	<ListView android:id="@+id/historyList" android:layout_width="wrap_content" android:layout_height="wrap_content"></ListView>
+</LinearLayout>
