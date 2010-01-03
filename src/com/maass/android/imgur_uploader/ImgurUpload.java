@@ -51,14 +51,14 @@ import android.view.View.OnClickListener;
 import android.widget.EditText;
 import android.widget.Toast;
 
-public class imgur_upload extends Activity {
-    private final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
+public class ImgurUpload extends Activity {
+    private final static String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
 	
-    private ProgressDialog dialogWait;
-    private Map<String, String> imgurResponse;
+    private ProgressDialog mDialogWait;
+    private Map<String, String> mImgurResponse;
  
-    private EditText editURL;
-    private EditText editDelete;
+    private EditText mEditURL;
+    private EditText mEditDelete;
     
 	/** Called when the activity is first created. */
     @Override
@@ -66,18 +66,18 @@ public class imgur_upload extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
  
-        editURL = (EditText)findViewById(R.id.url);
-    	editDelete = (EditText)findViewById(R.id.delete);
+        mEditURL = (EditText)findViewById(R.id.url);
+    	mEditDelete = (EditText)findViewById(R.id.delete);
     
     	setEventHandlers();
     	
-        dialogWait = ProgressDialog.show(this, "", 
+        mDialogWait = ProgressDialog.show(this, "", 
         		"Uploading image. Please wait...", true); 
         
     	Thread loadWorker = new Thread() {
         	public void run()
         	{   
-        		imgurResponse = handleSendIntent(getIntent());
+        		mImgurResponse = handleSendIntent(getIntent());
         		handler.sendEmptyMessage(0); 
         	}
     	};
@@ -92,10 +92,10 @@ public class imgur_upload extends Activity {
     		public void onClick(View v) {
     			Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
                 
-    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, editURL.getText().toString());
+    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditURL.getText().toString());
     			shareLinkIntent.setType("text/plain");
     			
-    			imgur_upload.this.startActivity(
+    			ImgurUpload.this.startActivity(
     					Intent.createChooser(shareLinkIntent, "Share via"));
     		}
         });
@@ -106,10 +106,10 @@ public class imgur_upload extends Activity {
     		public void onClick(View v) {
     			Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
                 
-    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, editDelete.getText().toString());
+    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditDelete.getText().toString());
     			shareLinkIntent.setType("text/plain");
     			
-    			imgur_upload.this.startActivity(
+    			ImgurUpload.this.startActivity(
     					Intent.createChooser(shareLinkIntent, "Share via"));
     		}
         });
@@ -117,15 +117,15 @@ public class imgur_upload extends Activity {
     
     private Handler handler = new Handler() {
         public void handleMessage(Message msg) {
-            dialogWait.dismiss();
+            mDialogWait.dismiss();
             
-            if (imgurResponse == null) {
-            	Toast.makeText(imgur_upload.this, "Connection issue", Toast.LENGTH_SHORT).show();
-            } else if (imgurResponse.get("error") != null) {
-            	Toast.makeText(imgur_upload.this, imgurResponse.get("error"), Toast.LENGTH_SHORT).show();
+            if (mImgurResponse == null) {
+            	Toast.makeText(ImgurUpload.this, "Connection issue", Toast.LENGTH_SHORT).show();
+            } else if (mImgurResponse.get("error") != null) {
+            	Toast.makeText(ImgurUpload.this, mImgurResponse.get("error"), Toast.LENGTH_SHORT).show();
             } else {
-            	editURL.setText(imgurResponse.get("original"));
-            	editDelete.setText(imgurResponse.get("delete"));
+            	mEditURL.setText(mImgurResponse.get("original"));
+            	mEditDelete.setText(mImgurResponse.get("delete"));
             }
         }
     };
