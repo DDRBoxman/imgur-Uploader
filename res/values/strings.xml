@@ -3,5 +3,7 @@
     <string name="app_name">imgur</string>
     <string name="url">URL: </string>
     <string name="delete">Delete: </string>
+    <string name="open">Open</string>
+    <string name="copy">Copy</string>
     <string name="share">Share</string>
 </resources>

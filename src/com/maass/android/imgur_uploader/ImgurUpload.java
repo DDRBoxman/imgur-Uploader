@@ -46,6 +46,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.ClipboardManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
@@ -65,12 +66,25 @@ public class ImgurUpload extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
- 
+        
+        final Object savedData = getLastNonConfigurationInstance();
+        
         mEditURL = (EditText)findViewById(R.id.url);
     	mEditDelete = (EditText)findViewById(R.id.delete);
     
     	setEventHandlers();
     	
+        //Rotated so just restore the links and don't do
+        // the rest
+        if (savedData != null)
+        {
+        	String[] latestLinks = (String[])savedData;
+        	mEditURL.setText(latestLinks[0]);
+        	mEditDelete.setText(latestLinks[1]);
+        	
+        	return;
+        }
+        
         mDialogWait = ProgressDialog.show(this, "", 
         		"Uploading image. Please wait...", true); 
         
@@ -85,8 +99,26 @@ public class ImgurUpload extends Activity {
     	loadWorker.start();
     }
     
+    public Object onRetainNonConfigurationInstance() {
+    	String[] latestLinks = new String[2];
+    	
+    	latestLinks[0] = mEditURL.getText().toString();
+    	latestLinks[1] = mEditDelete.getText().toString();
+    	
+        return latestLinks;
+    }
+    
     private void setEventHandlers() {
-        //Clicking url share button displays screen to select how
+    	//Clicking the url copy button copies the original url
+    	//to the global clipboard
+    	findViewById(R.id.copyURL).setOnClickListener(new OnClickListener() {
+    		public void onClick(View v) {
+    			ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+       			clipboard.setText(mEditURL.getText());
+    		}
+        });
+    	
+    	//Clicking url share button displays screen to select how
         //to share the image link
     	findViewById(R.id.shareURL).setOnClickListener(new OnClickListener() {
     		public void onClick(View v) {
@@ -100,7 +132,16 @@ public class ImgurUpload extends Activity {
     		}
         });
     	
-        //Clicking delete share button displays screen to select how
+        //Clicking the delete copy button copies the delete url
+    	//to the global clipboard
+    	findViewById(R.id.copyDelete).setOnClickListener(new OnClickListener() {
+    		public void onClick(View v) {
+    			ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+       			clipboard.setText(mEditDelete.getText());
+    		}
+        });
+    	
+    	//Clicking delete share button displays screen to select how
         //to share the delete link
     	findViewById(R.id.shareDelete).setOnClickListener(new OnClickListener() {
     		public void onClick(View v) {
