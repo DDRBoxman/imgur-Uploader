@@ -47,6 +47,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.text.ClipboardManager;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
@@ -182,16 +183,23 @@ public class ImgurUpload extends Activity {
     	if (Intent.ACTION_SEND.equals(intent.getAction()) &&
     			(extras != null) &&
     			extras.containsKey(Intent.EXTRA_STREAM)) {
-
+			
     		Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
-    	    
+    	   
     		if (uri != null) {
+    			Log.d(this.getClass().getName(), "FLAG A1");
     			byte[] pictureData = readPictureData(uri);
-    		    
+    		    uri = null;
         	    if (pictureData != null)
         	    {
+        	    	Log.d(this.getClass().getName(), "FLAG A2");
         	    	byte[] pictureEncoded = Base64.encodeBase64(pictureData);
-        	    	HttpResponse response = uploadImage(new String(pictureEncoded));
+        	    	pictureData = null;
+        	    	Log.d(this.getClass().getName(), "FLAG A3");
+        	    	String pictureDataString = new String(pictureEncoded);
+        	    	pictureEncoded = null;
+        	    	Log.d(this.getClass().getName(), "FLAG A4");
+        	    	HttpResponse response = uploadImage(pictureDataString);
         	    	
         	    	return parseResponse(response);
         	    }
@@ -232,18 +240,19 @@ public class ImgurUpload extends Activity {
     	HttpClient httpClient = new DefaultHttpClient();  
     	HttpPost httpPost = new HttpPost("http://imgur.com/api/upload.xml");  
 
-    	try {  
+    	try {
+    		Log.d(this.getClass().getName(), "FLAG B1");
     		List<NameValuePair> postContent = new ArrayList<NameValuePair>(2);  
     		postContent.add(new BasicNameValuePair("key", API_KEY));  
     		postContent.add(new BasicNameValuePair("image", pictureBase64));  
     		httpPost.setEntity(new UrlEncodedFormEntity(postContent));  
     		httpPost.addHeader("Accept-Encoding", "html/xml");
-    		
+    		Log.d(this.getClass().getName(), "FLAG B2");
     		return httpClient.execute(httpPost);  
     	} catch (ClientProtocolException e) {  
-    		e.printStackTrace();
+    		Log.d(this.getClass().getName(), "FLAG Bx", e);
     	} catch (IOException e) {  
-    		e.printStackTrace();
+    		Log.d(this.getClass().getName(), "FLAG Bx", e);
     	}  
     	
     	return null;
