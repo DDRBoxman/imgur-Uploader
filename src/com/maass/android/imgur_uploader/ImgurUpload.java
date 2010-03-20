@@ -17,27 +17,20 @@
 
 package com.maass.android.imgur_uploader;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.ParseException;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
+import org.apache.commons.codec_1_4.binary.Base64OutputStream;
+import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -54,7 +47,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 public class ImgurUpload extends Activity {
-    private final static String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
+	private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
+	private static final int READ_BUFFER_SIZE_BYTES = 1500;
 	
     private ProgressDialog mDialogWait;
     private Map<String, String> mImgurResponse;
@@ -171,125 +165,123 @@ public class ImgurUpload extends Activity {
             }
         }
     };
-    
-    //Returns a map that contains objects with the following keys:
-    // error - the imgur error message if any (null if no error)
-    // delete - the url used to delete the uploaded image (null if error)
-    // original - the url to the uploaded image (null if error)
-    //The map is null if error
-    private Map<String, String> handleSendIntent(Intent intent) {
-    	Bundle extras = intent.getExtras();
 
-    	if (Intent.ACTION_SEND.equals(intent.getAction()) &&
-    			(extras != null) &&
-    			extras.containsKey(Intent.EXTRA_STREAM)) {
-			
-    		Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
-    	   
-    		if (uri != null) {
-    			Log.d(this.getClass().getName(), "FLAG A1");
-    			byte[] pictureData = readPictureData(uri);
-    		    uri = null;
-        	    if (pictureData != null)
-        	    {
-        	    	Log.d(this.getClass().getName(), "FLAG A2");
-        	    	byte[] pictureEncoded = Base64.encodeBase64(pictureData);
-        	    	pictureData = null;
-        	    	Log.d(this.getClass().getName(), "FLAG A3");
-        	    	String pictureDataString = new String(pictureEncoded);
-        	    	pictureEncoded = null;
-        	    	Log.d(this.getClass().getName(), "FLAG A4");
-        	    	HttpResponse response = uploadImage(pictureDataString);
-        	    	
-        	    	return parseResponse(response);
-        	    }
-    		}
-    	}
-    	
-    	return null;
-    }
-    
-    //Returns the raw bytes of a picture from an
-    //intent uri
-    private byte[] readPictureData(Uri uri) {
-    	try {
-	    	InputStream inputStream = this.getContentResolver().openInputStream(uri);
-    	    BufferedInputStream binaryStream = new BufferedInputStream(inputStream);
-    	    DataInputStream dataStream = new DataInputStream(binaryStream);
-	    	
-	        byte[] pictureData = new byte[dataStream.available()];
-	        dataStream.read(pictureData);
+	/**
+	 * @return a map that contains objects with the following keys:
+	 * 
+	 *         delete - the url used to delete the uploaded image (null if
+	 *         error).
+	 * 
+	 *         original - the url to the uploaded image (null if error) The map
+	 *         is null if error
+	 */
+	private Map<String, String> handleSendIntent(Intent intent) {
+		Bundle extras = intent.getExtras();
+		try {
+			if (Intent.ACTION_SEND.equals(intent.getAction())
+					&& (extras != null)
+					&& extras.containsKey(Intent.EXTRA_STREAM)) {
 
-	        inputStream.close();
-	        binaryStream.close();
-	        dataStream.close();
-	        
-	        return pictureData;
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	    }
-	    
-	    return null;
-    }
-    
-    //Uploads an image to imgur given the contents of
-    //the image in base64.
-    private HttpResponse uploadImage(String pictureBase64) {
-    	HttpClient httpClient = new DefaultHttpClient();  
-    	HttpPost httpPost = new HttpPost("http://imgur.com/api/upload.xml");  
-
-    	try {
-    		Log.d(this.getClass().getName(), "FLAG B1");
-    		List<NameValuePair> postContent = new ArrayList<NameValuePair>(2);  
-    		postContent.add(new BasicNameValuePair("key", API_KEY));  
-    		postContent.add(new BasicNameValuePair("image", pictureBase64));  
-    		httpPost.setEntity(new UrlEncodedFormEntity(postContent));  
-    		httpPost.addHeader("Accept-Encoding", "html/xml");
-    		Log.d(this.getClass().getName(), "FLAG B2");
-    		return httpClient.execute(httpPost);  
-    	} catch (ClientProtocolException e) {  
-    		Log.d(this.getClass().getName(), "FLAG Bx", e);
-    	} catch (IOException e) {  
-    		Log.d(this.getClass().getName(), "FLAG Bx", e);
-    	}  
-    	
-    	return null;
-    }
-    
-    //Returns a map that contains objects with the following keys:
-    // error - the imgur error message if any (null if no error)
-    // delete - the url used to delete the uploaded image (null if error)
-    // original - the url to the uploaded image (null if error)
-    private Map<String,String> parseResponse(HttpResponse response) {
-    	String xmlResponse = null;
-    	
-    	try {
-			xmlResponse = EntityUtils.toString(response.getEntity());
-		} catch (ParseException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+				Uri uri = (Uri) extras.getParcelable(Intent.EXTRA_STREAM);
+				if (uri != null) {
+					Log.d(this.getClass().getName(), uri.toString());
+					final String jsonOutput = readPictureDataAndUpload(uri);
+					return parseJSONResponse(jsonOutput);
+				}
+				Log.d(this.getClass().getName(), "URI null");
+			}
+		} catch (Exception e) {
+			Log.e(this.getClass().getName(), "What?", e);
 		}
-		
-		if (xmlResponse == null) return null;
-		
-		HashMap<String, String> ret = new HashMap<String, String>();
-		ret.put("error", getXMLElementValue(xmlResponse, "error_msg"));
-		ret.put("delete", getXMLElementValue(xmlResponse, "delete_page"));
-		ret.put("original", getXMLElementValue(xmlResponse, "original_image"));
-		
-		return ret;
-    }
-   
-    //Returns a string that contains the value between
-    // <elemenName></elementName>
-    private String getXMLElementValue(String xml, String elementName) {
-    	if (xml.indexOf(elementName) >= 0)
-    		return xml.substring(xml.indexOf(elementName) + elementName.length() + 1, 
-    				xml.lastIndexOf(elementName) - 2);
-    	else
-    		return null;
-    }
+		return null;
+	}
+
+	private String readPictureDataAndUpload(Uri uri) {
+		try {
+			InputStream inputStream = this.getContentResolver()
+					.openInputStream(uri);
+
+			final String boundaryString = "Z."
+					+ Long.toHexString(System.currentTimeMillis())
+					+ Long.toHexString((new Random()).nextLong());
+			final String boundary = "--" + boundaryString;
+			HttpURLConnection conn = (HttpURLConnection) (new URL(
+					"http://imgur.com/api/upload.json")).openConnection();
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Content-type",
+					"multipart/form-data; boundary=\"" + boundaryString + "\"");
+			conn.setUseCaches(false);
+			conn.setDoInput(true);
+			conn.setDoOutput(true);
+			OutputStream hrout = conn.getOutputStream();
+			PrintStream hout = new PrintStream(hrout);
+			hout.println(boundary);
+			hout.println("Content-Disposition: form-data; name=\"key\"");
+			hout.println("Content-Type: text/plain");
+			hout.println();
+			hout.println(API_KEY);
+			hout.println(boundary);
+			hout.println("Content-Disposition: form-data; name=\"image\"");
+			hout.println("Content-Transfer-Encoding: base64");
+			hout.println();
+			hout.flush();
+			{
+				Base64OutputStream bhout = new Base64OutputStream(hrout, true,
+						0, new byte[0]);
+				byte[] pictureData = new byte[READ_BUFFER_SIZE_BYTES];
+				int read = 0;
+				while (read >= 0) {
+					read = inputStream.read(pictureData);
+					if (read > 0) {
+						bhout.write(pictureData, 0, read);
+					}
+				}
+				bhout.flush();
+				// This close is absolutely necessary, this tells the
+				// Base64OutputStream to finish writing the last of the data
+				// (and including the padding). Without this line, it will miss
+				// the last 4 chars in the output, missing up to 3 bytes in the
+				// final output.
+				bhout.close();
+			}
+			hout.println(boundary);
+			hout.flush();
+			hrout.close();
+
+			inputStream.close();
+
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					conn.getInputStream()));
+			StringBuilder rData = new StringBuilder();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				rData.append(line).append('\n');
+			}
+
+			return rData.toString();
+		} catch (IOException e) {
+			Log.e(this.getClass().getName(), "Upload failed", e);
+		}
+
+		return null;
+	}
+
+	private Map<String, String> parseJSONResponse(String response) {
+		try {
+			Log.d(this.getClass().getName(), response);
+
+			JSONObject json = new JSONObject(response);
+			JSONObject data = json.getJSONObject("rsp").getJSONObject("image");
+
+			HashMap<String, String> ret = new HashMap<String, String>();
+			ret.put("delete", data.getString("delete_page"));
+			ret.put("original", data.getString("original_image"));
+
+			return ret;
+		} catch (Exception e) {
+			Log.e(this.getClass().getName(),
+					"Error parsing response from imgur", e);
+		}
+		return null;
+	}
 }
