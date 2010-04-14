@@ -98,6 +98,8 @@ public class ImgurUpload extends Activity implements ImgurListener {
         	return;
         }
         
+        // New thread updates progress dialog at 2 Hz.
+        // Is killed when mUploading == false
         Thread updateWorker = new Thread () {
         	public void run() {
         		while(mUploading) {
@@ -200,12 +202,17 @@ public class ImgurUpload extends Activity implements ImgurListener {
     			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditDelete.getText().toString());
     			shareLinkIntent.setType("text/plain");
     			
+    			Resources res = getResources();
     			ImgurUpload.this.startActivity(
-    					Intent.createChooser(shareLinkIntent, "Share via"));
+    					Intent.createChooser(shareLinkIntent, res.getString( R.string.share_via) ));
     		}
         });
     }
     
+    /** Dismisses the "wait" dialog and calls up the "progress" dialog 
+     * Added because Android subsystem doesn't like you messing
+     * with a ProgressDialog once you have already mucked with it.
+     */
     private Handler encodeHandler = new Handler() {
     	public void handleMessage(Message msg) {
     		dismissDialog(USER_WAIT);
@@ -219,7 +226,7 @@ public class ImgurUpload extends Activity implements ImgurListener {
             dismissDialog(PROGRESS_METER);
             
             if (mImgurResponse == null) {
-            	Toast.makeText(ImgurUpload.this, "Connection issue", Toast.LENGTH_SHORT).show();
+            	Toast.makeText(ImgurUpload.this, R.string.connection_error, Toast.LENGTH_SHORT).show();
             } else if (mImgurResponse.get("error") != null) {
             	Toast.makeText(ImgurUpload.this, mImgurResponse.get("error"), Toast.LENGTH_SHORT).show();
             } else {
@@ -289,7 +296,6 @@ public class ImgurUpload extends Activity implements ImgurListener {
     //the image in base64.
     private HttpResponse uploadImage() {
     	HttpClient httpClient = new DefaultHttpClient();  
-//    	HttpPost httpPost = new HttpPost("http://pk-fire.com/");  
     	HttpPost httpPost = new HttpPost("http://imgur.com/api/upload.xml");  
 
     	// Change over to display uploadiness

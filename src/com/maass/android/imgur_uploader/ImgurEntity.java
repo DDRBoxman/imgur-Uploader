@@ -9,10 +9,13 @@ import java.util.List;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-
+/**
+ * An extension to UrlEncodedFormEntity so that we can
+ * count the number of bytes written to the OutputStream
+ * and do stuff like track its progress.
+ * @author pkilgo
+ *
+ */
 public class ImgurEntity extends UrlEncodedFormEntity {
 	private ImgurListener mCallback;
 	
@@ -21,10 +24,22 @@ public class ImgurEntity extends UrlEncodedFormEntity {
 		mCallback = listener;
 	}
 	
+	/**
+	 * Overridden method to force writing via our CountingOutputStream.
+	 */
 	public void writeTo(final OutputStream out) throws IOException {
 		super.writeTo(new CountingOutputStream(out, mCallback));
 	}
 	
+	/**
+	 * Extension of FilterOutputStream.
+	 * This class counts the number of bytes
+	 * to be written and keeps track, finally writing to 
+	 * the OutputStream specified, and notifies the callback
+	 * that something has changed.
+	 * @author pkilgo
+	 *
+	 */
     public static class CountingOutputStream extends FilterOutputStream {
         private long mTransferred;
         private ImgurListener mListener;
