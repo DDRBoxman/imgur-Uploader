@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">imgur</string>
+    <string name="url">URL: </string>
+    <string name="delete">Borrar: </string>
+    <string name="open">Abrir</string>
+    <string name="copy">Copiar</string>
+    <string name="share">Compartir</string>
+    <string name="uploading_image">Subiendo imagen...</string>
+    <string name="preparing_image">Codificando imagen...</string>
+    <string name="please_wait">Por favor espera</string>
+    <string name="connection_error">Error de conexión</string>
+    <string name="share_via">Compartir por</string>
+</resources>
