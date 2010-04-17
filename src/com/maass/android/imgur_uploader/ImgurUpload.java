@@ -74,6 +74,8 @@ public class ImgurUpload extends Activity implements ImgurListener {
     private String mPayload;
     private boolean mUploading = false;
     
+    private final boolean mDebug = false;
+    
 	/** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -127,6 +129,14 @@ public class ImgurUpload extends Activity implements ImgurListener {
     	mUploading = true;
     	loadWorker.start();
     	updateWorker.start();
+    }
+    
+    protected void onSaveInstanceState(Bundle icicle) {
+    	icicle.putString("payload", mPayload);
+    }
+    
+    protected void onRestoreInstanceState(Bundle icicle) {
+    	mPayload = icicle.getString("payload");
     }
     
     @Override
@@ -311,7 +321,24 @@ public class ImgurUpload extends Activity implements ImgurListener {
     		httpPost.setEntity(httpEntity);  
     		httpPost.addHeader("Accept-Encoding", "html/xml");
     		
-    		return httpClient.execute(httpPost);  
+    		// Don't actually upload if we're in debug mode
+    		if(mDebug) {
+    			// Pause a little bit...
+    			int size = mPayload.length();
+    			
+    			mTransferred = 0;
+    			while(mTransferred < size) {
+    				mTransferred = Math.min(size, mTransferred + size / 20);
+    				try { Thread.sleep(500); }
+    				catch(InterruptedException e) { break; }
+    			}
+    			
+    			return null;
+    		}
+    		else {
+    			return httpClient.execute(httpPost);
+    		}
+    		
     	} catch (ClientProtocolException e) {  
     		e.printStackTrace();
     	} catch (IOException e) {  
@@ -327,6 +354,13 @@ public class ImgurUpload extends Activity implements ImgurListener {
     // original - the url to the uploaded image (null if error)
     private Map<String,String> parseResponse(HttpResponse response) {
     	String xmlResponse = null;
+    	
+    	if(mDebug) {
+    		HashMap<String,String> ret = new HashMap<String,String>();
+    		ret.put("delete", "{DELETE_URL}");
+    		ret.put("original", "{IMAGE_URL}");
+    		return ret;
+    	}
     	
     	try {
 			xmlResponse = EntityUtils.toString(response.getEntity());
