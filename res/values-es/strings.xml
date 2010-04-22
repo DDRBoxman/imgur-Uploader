@@ -6,8 +6,8 @@
     <string name="open">Abrir</string>
     <string name="copy">Copiar</string>
     <string name="share">Compartir</string>
-    <string name="uploading_image">Subiendo imagen...</string>
-    <string name="preparing_image">Codificando imagen...</string>
+    <string name="uploading_image">Subiendo imágen...</string>
+    <string name="preparing_image">Codificando imágen...</string>
     <string name="please_wait">Por favor espera</string>
     <string name="connection_error">Error de conexión</string>
     <string name="share_via">Compartir por</string>
