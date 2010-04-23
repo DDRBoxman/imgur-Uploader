@@ -49,7 +49,7 @@ import android.widget.Toast;
 
 public class ImgurUpload extends Activity {
 	private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
-	private static final int READ_BUFFER_SIZE_BYTES = 1500;
+	private static final int READ_BUFFER_SIZE_BYTES = 1125;
 
 	private ProgressDialog mDialogWait;
 	private Map<String, String> mImgurResponse;
@@ -184,6 +184,7 @@ public class ImgurUpload extends Activity {
 	 *         is null if error
 	 */
 	private Map<String, String> handleSendIntent(Intent intent) {
+		Log.d(this.getClass().getName(), intent.toString());
 		Bundle extras = intent.getExtras();
 		try {
 			if (Intent.ACTION_SEND.equals(intent.getAction())
@@ -196,10 +197,10 @@ public class ImgurUpload extends Activity {
 					final String jsonOutput = readPictureDataAndUpload(uri);
 					return parseJSONResponse(jsonOutput);
 				}
-				Log.d(this.getClass().getName(), "URI null");
+				Log.e(this.getClass().getName(), "URI null");
 			}
 		} catch (Exception e) {
-			Log.e(this.getClass().getName(), "What?", e);
+			Log.e(this.getClass().getName(), "Completely unexpected error", e);
 		}
 		return null;
 	}
@@ -253,13 +254,14 @@ public class ImgurUpload extends Activity {
 					if (read > 0) {
 						bhout.write(pictureData, 0, read);
 						totalRead += read;
-						if (lastLogTime < (System.currentTimeMillis() - 1000)) {
+						if (lastLogTime < (System.currentTimeMillis() - 250)) {
 							lastLogTime = System.currentTimeMillis();
 							Log.d(this.getClass().getName(), "Uploaded "
 									+ totalRead + " bytes");
 						}
 					}
 				}
+				Log.d(this.getClass().getName(), "Finishing upload...");
 				bhout.flush();
 				// This close is absolutely necessary, this tells the
 				// Base64OutputStream to finish writing the last of the data
@@ -267,12 +269,16 @@ public class ImgurUpload extends Activity {
 				// the last 4 chars in the output, missing up to 3 bytes in the
 				// final output.
 				bhout.close();
+				Log.d(this.getClass().getName(), "Upload complete...");
 			}
+
 			hout.println(boundary);
 			hout.flush();
 			hrout.close();
 
 			inputStream.close();
+			Log.d(this.getClass().getName(), "streams closed, "
+					+ "now waiting for response from server");
 
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
