@@ -35,6 +35,7 @@ import org.json.JSONObject;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.res.AssetFileDescriptor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -215,6 +216,11 @@ public class ImgurUpload extends Activity {
 	 */
 	private String readPictureDataAndUpload(Uri uri) {
 		try {
+			final AssetFileDescriptor afd = this.getContentResolver()
+					.openAssetFileDescriptor(uri, "r");
+			final long dlen = afd.getLength();
+			afd.close();
+
 			InputStream inputStream = this.getContentResolver()
 					.openInputStream(uri);
 
@@ -254,10 +260,11 @@ public class ImgurUpload extends Activity {
 					if (read > 0) {
 						bhout.write(pictureData, 0, read);
 						totalRead += read;
-						if (lastLogTime < (System.currentTimeMillis() - 250)) {
+						if (lastLogTime < (System.currentTimeMillis() - 100)) {
 							lastLogTime = System.currentTimeMillis();
 							Log.d(this.getClass().getName(), "Uploaded "
-									+ totalRead + " bytes");
+									+ totalRead + " of " + dlen + " bytes ("
+									+ (100 * totalRead) / dlen + "%)");
 						}
 					}
 				}
