@@ -17,381 +17,311 @@
 
 package com.maass.android.imgur_uploader;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
-import org.apache.commons.codec_1_4.binary.Base64;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.ParseException;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-
-import com.maass.android.imgur_uploader.ImgurEntity.CountingOutputStream;
+import org.apache.commons.codec_1_4.binary.Base64OutputStream;
+import org.json.JSONObject;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.text.ClipboardManager;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
-public class ImgurUpload extends Activity implements ImgurListener {
-    private final static String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
-    private final static int
-    	USER_WAIT = 0xBeC001,
-    	PROGRESS_METER = 0xFACE0FF;
-	
-    private ProgressDialog mMeterDialog;
-    private ProgressDialog mWaitDialog;
-    
-    private Map<String, String> mImgurResponse;
- 
-    private EditText mEditURL;
-    private EditText mEditDelete;
-    
-    private long mTransferred;
-    private String mPayload;
-    private boolean mUploading = false;
-    
-    private final boolean mDebug = false;
-    
+public class ImgurUpload extends Activity {
+	private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
+	private static final int READ_BUFFER_SIZE_BYTES = 1500;
+
+	private ProgressDialog mDialogWait;
+	private Map<String, String> mImgurResponse;
+
+	private TextView mEditURL;
+	private TextView mEditDelete;
+
 	/** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
-        
-        final Object savedData = getLastNonConfigurationInstance();
-        
-        mEditURL = (EditText)findViewById(R.id.url);
-    	mEditDelete = (EditText)findViewById(R.id.delete);
-    
-    	setEventHandlers();
-    	
-        //Rotated so just restore the links and don't do
-        // the rest
-        if (savedData != null)
-        {
-        	String[] latestLinks = (String[])savedData;
-        	mEditURL.setText(latestLinks[0]);
-        	mEditDelete.setText(latestLinks[1]);
-        	
-        	return;
-        }
-        
-        // New thread updates progress dialog at 2 Hz.
-        // Is killed when mUploading == false
-        Thread updateWorker = new Thread () {
-        	public void run() {
-        		while(mUploading) {
-        			try { Thread.sleep(500); }
-        			catch(InterruptedException e) { break; }
-        			
-        			if(mPayload == null || mMeterDialog == null) continue;
-        			
-        			int size = mPayload.length();
-        			mMeterDialog.setMax(size);
-        			mMeterDialog.setProgress((int) mTransferred);
-        		}
-        	}
-        };
-        
-    	Thread loadWorker = new Thread() {
-        	public void run()
-        	{   
-        		mImgurResponse = handleSendIntent(getIntent());
-        		uploadHandler.sendEmptyMessage(0); 
-        	}
-    	};
-    	
-    	showDialog(USER_WAIT);
-    	mUploading = true;
-    	loadWorker.start();
-    	updateWorker.start();
-    }
-    
-    protected void onSaveInstanceState(Bundle icicle) {
-    	icicle.putString("payload", mPayload);
-    }
-    
-    protected void onRestoreInstanceState(Bundle icicle) {
-    	mPayload = icicle.getString("payload");
-    }
-    
-    @Override
-    public Dialog onCreateDialog(int id) {
-    	Resources res = getResources();
-    	switch(id) {
-    	case PROGRESS_METER:
-    		mMeterDialog = new ProgressDialog(this);
-    		mMeterDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-    		mMeterDialog.setTitle(R.string.uploading_image);
-    		mMeterDialog.setMax(mPayload.length());
-    		return mMeterDialog;
-    		
-    	case USER_WAIT:
-    		mWaitDialog = new ProgressDialog(this);
-    		mWaitDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-    		mWaitDialog.setTitle(R.string.please_wait);
-    		mWaitDialog.setMessage(res.getString(R.string.preparing_image));
-    		return mWaitDialog;
-    	}
-    	
-    	return null;
-    }
-    
-    public Object onRetainNonConfigurationInstance() {
-    	String[] latestLinks = new String[2];
-    	
-    	latestLinks[0] = mEditURL.getText().toString();
-    	latestLinks[1] = mEditDelete.getText().toString();
-    	
-        return latestLinks;
-    }
-    
-    private void setEventHandlers() {
-    	//Clicking the url copy button copies the original url
-    	//to the global clipboard
-    	findViewById(R.id.copyURL).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-       			clipboard.setText(mEditURL.getText());
-    		}
-        });
-    	
-    	//Clicking url share button displays screen to select how
-        //to share the image link
-    	findViewById(R.id.shareURL).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
-                
-    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditURL.getText().toString());
-    			shareLinkIntent.setType("text/plain");
-    			
-    			ImgurUpload.this.startActivity(
-    					Intent.createChooser(shareLinkIntent, "Share via"));
-    		}
-        });
-    	
-        //Clicking the delete copy button copies the delete url
-    	//to the global clipboard
-    	findViewById(R.id.copyDelete).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-       			clipboard.setText(mEditDelete.getText());
-    		}
-        });
-    	
-    	//Clicking delete share button displays screen to select how
-        //to share the delete link
-    	findViewById(R.id.shareDelete).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
-                
-    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditDelete.getText().toString());
-    			shareLinkIntent.setType("text/plain");
-    			
-    			Resources res = getResources();
-    			ImgurUpload.this.startActivity(
-    					Intent.createChooser(shareLinkIntent, res.getString( R.string.share_via) ));
-    		}
-        });
-    }
-    
-    /** Dismisses the "wait" dialog and calls up the "progress" dialog 
-     * Added because Android subsystem doesn't like you messing
-     * with a ProgressDialog once you have already mucked with it.
-     */
-    private Handler encodeHandler = new Handler() {
-    	public void handleMessage(Message msg) {
-    		dismissDialog(USER_WAIT);
-    		showDialog(PROGRESS_METER);
-    	}
-    };
-    
-    private Handler uploadHandler = new Handler() {
-        public void handleMessage(Message msg) {
-        	mUploading = false; // Kills a thread that updates meter dialog
-            dismissDialog(PROGRESS_METER);
-            
-            if (mImgurResponse == null) {
-            	Toast.makeText(ImgurUpload.this, R.string.connection_error, Toast.LENGTH_SHORT).show();
-            } else if (mImgurResponse.get("error") != null) {
-            	Toast.makeText(ImgurUpload.this, mImgurResponse.get("error"), Toast.LENGTH_SHORT).show();
-            } else {
-            	mEditURL.setText(mImgurResponse.get("original"));
-            	mEditDelete.setText(mImgurResponse.get("delete"));
-            }
-        }
-    };
-    
-    //Returns a map that contains objects with the following keys:
-    // error - the imgur error message if any (null if no error)
-    // delete - the url used to delete the uploaded image (null if error)
-    // original - the url to the uploaded image (null if error)
-    //The map is null if error
-    private Map<String, String> handleSendIntent(Intent intent) {
-    	Bundle extras = intent.getExtras();
-
-    	if (Intent.ACTION_SEND.equals(intent.getAction()) &&
-    			(extras != null) &&
-    			extras.containsKey(Intent.EXTRA_STREAM)) {
-
-    		Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
-    	    
-    		if (uri != null) {
-    			byte[] pictureData = readPictureData(uri);
-    		    
-        	    if (pictureData != null)
-        	    {
-        	    	byte[] pictureEncoded = Base64.encodeBase64(pictureData);
-        	    	mPayload = new String(pictureEncoded);
-        	    	HttpResponse response = uploadImage();
-        	    	
-        	    	return parseResponse(response);
-        	    }
-    		}
-    	}
-    	
-    	return null;
-    }
-    
-    //Returns the raw bytes of a picture from an
-    //intent uri
-    private byte[] readPictureData(Uri uri) {
-    	try {
-	    	InputStream inputStream = this.getContentResolver().openInputStream(uri);
-    	    BufferedInputStream binaryStream = new BufferedInputStream(inputStream);
-    	    DataInputStream dataStream = new DataInputStream(binaryStream);
-	    	
-	        byte[] pictureData = new byte[dataStream.available()];
-	        dataStream.read(pictureData);
-
-	        inputStream.close();
-	        binaryStream.close();
-	        dataStream.close();
-	        
-	        return pictureData;
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	    }
-	    
-	    return null;
-    }
-    
-    //Uploads an image to imgur given the contents of
-    //the image in base64.
-    private HttpResponse uploadImage() {
-    	HttpClient httpClient = new DefaultHttpClient();  
-    	HttpPost httpPost = new HttpPost("http://imgur.com/api/upload.xml");  
-
-    	// Change over to display uploadiness
-    	encodeHandler.sendEmptyMessage(0);
-    	
-    	try {  
-    		
-    		List<NameValuePair> postContent = new ArrayList<NameValuePair>(2);  
-    		postContent.add(new BasicNameValuePair("key", API_KEY));  
-    		postContent.add(new BasicNameValuePair("image", mPayload));
-    		HttpEntity httpEntity = new ImgurEntity(postContent, this);
-    		
-    		httpPost.setEntity(httpEntity);  
-    		httpPost.addHeader("Accept-Encoding", "html/xml");
-    		
-    		// Don't actually upload if we're in debug mode
-    		if(mDebug) {
-    			// Pause a little bit...
-    			int size = mPayload.length();
-    			
-    			mTransferred = 0;
-    			while(mTransferred < size) {
-    				mTransferred = Math.min(size, mTransferred + size / 20);
-    				try { Thread.sleep(500); }
-    				catch(InterruptedException e) { break; }
-    			}
-    			
-    			return null;
-    		}
-    		else {
-    			return httpClient.execute(httpPost);
-    		}
-    		
-    	} catch (ClientProtocolException e) {  
-    		e.printStackTrace();
-    	} catch (IOException e) {  
-    		e.printStackTrace();
-    	}  
-    	
-    	return null;
-    }
-    
-    //Returns a map that contains objects with the following keys:
-    // error - the imgur error message if any (null if no error)
-    // delete - the url used to delete the uploaded image (null if error)
-    // original - the url to the uploaded image (null if error)
-    private Map<String,String> parseResponse(HttpResponse response) {
-    	String xmlResponse = null;
-    	
-    	if(mDebug) {
-    		HashMap<String,String> ret = new HashMap<String,String>();
-    		ret.put("delete", "{DELETE_URL}");
-    		ret.put("original", "{IMAGE_URL}");
-    		return ret;
-    	}
-    	
-    	try {
-			xmlResponse = EntityUtils.toString(response.getEntity());
-		} catch (ParseException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		if (xmlResponse == null) return null;
-		
-		HashMap<String, String> ret = new HashMap<String, String>();
-		ret.put("error", getXMLElementValue(xmlResponse, "error_msg"));
-		ret.put("delete", getXMLElementValue(xmlResponse, "delete_page"));
-		ret.put("original", getXMLElementValue(xmlResponse, "original_image"));
-		
-		return ret;
-    }
-   
-    //Returns a string that contains the value between
-    // <elemenName></elementName>
-    private String getXMLElementValue(String xml, String elementName) {
-    	if (xml.indexOf(elementName) >= 0)
-    		return xml.substring(xml.indexOf(elementName) + elementName.length() + 1, 
-    				xml.lastIndexOf(elementName) - 2);
-    	else
-    		return null;
-    }
-
 	@Override
-	public void receiveLong(long num) {
-		mTransferred = num;
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		final Object savedData = getLastNonConfigurationInstance();
+
+		mEditURL = (TextView) findViewById(R.id.url);
+		mEditDelete = (TextView) findViewById(R.id.delete);
+
+		setEventHandlers();
+
+		// Rotated so just restore the links and don't do
+		// the rest
+		if (savedData != null) {
+			String[] latestLinks = (String[]) savedData;
+			mEditURL.setText(latestLinks[0]);
+			mEditDelete.setText(latestLinks[1]);
+
+			return;
+		}
+
+		mDialogWait = ProgressDialog.show(this, "", getResources().getString(
+				R.string.uploading_image), true);
+
+		Thread loadWorker = new Thread() {
+			public void run() {
+				mImgurResponse = handleSendIntent(getIntent());
+				handler.sendEmptyMessage(0);
+			}
+		};
+
+		loadWorker.start();
+	}
+
+	public Object onRetainNonConfigurationInstance() {
+		String[] latestLinks = new String[2];
+
+		latestLinks[0] = mEditURL.getText().toString();
+		latestLinks[1] = mEditDelete.getText().toString();
+
+		return latestLinks;
+	}
+
+	private void setEventHandlers() {
+		// Clicking the url copy button copies the original url
+		// to the global clipboard
+		findViewById(R.id.copyURL).setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+				clipboard.setText(mEditURL.getText());
+			}
+		});
+
+		// Clicking url share button displays screen to select how
+		// to share the image link
+		findViewById(R.id.shareURL).setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
+
+				shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditURL.getText()
+						.toString());
+				shareLinkIntent.setType("text/plain");
+
+				ImgurUpload.this.startActivity(Intent.createChooser(
+						shareLinkIntent, getResources().getString(
+								R.string.share_via)));
+			}
+		});
+
+		// Clicking the delete copy button copies the delete url
+		// to the global clipboard
+		findViewById(R.id.copyDelete).setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+				clipboard.setText(mEditDelete.getText());
+			}
+		});
+
+		// Clicking delete share button displays screen to select how
+		// to share the delete link
+		findViewById(R.id.shareDelete).setOnClickListener(
+				new OnClickListener() {
+					public void onClick(View v) {
+						Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
+
+						shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditDelete
+								.getText().toString());
+						shareLinkIntent.setType("text/plain");
+
+						ImgurUpload.this.startActivity(Intent.createChooser(
+								shareLinkIntent, getResources().getString(
+										R.string.share_via)));
+					}
+				});
+	}
+
+	private Handler handler = new Handler() {
+		public void handleMessage(Message msg) {
+			mDialogWait.dismiss();
+
+			if (mImgurResponse == null) {
+				Toast.makeText(ImgurUpload.this,
+						getResources().getString(R.string.connection_error),
+						Toast.LENGTH_SHORT).show();
+			} else if (mImgurResponse.get("error") != null) {
+				Toast.makeText(ImgurUpload.this, mImgurResponse.get("error"),
+						Toast.LENGTH_SHORT).show();
+			} else {
+				mEditURL.setText(mImgurResponse.get("original"));
+				mEditDelete.setText(mImgurResponse.get("delete"));
+			}
+		}
+	};
+
+	/**
+	 * 
+	 * @return a map that contains objects with the following keys:
+	 * 
+	 *         delete - the url used to delete the uploaded image (null if
+	 *         error).
+	 * 
+	 *         original - the url to the uploaded image (null if error) The map
+	 *         is null if error
+	 */
+	private Map<String, String> handleSendIntent(Intent intent) {
+		Bundle extras = intent.getExtras();
+		try {
+			if (Intent.ACTION_SEND.equals(intent.getAction())
+					&& (extras != null)
+					&& extras.containsKey(Intent.EXTRA_STREAM)) {
+
+				Uri uri = (Uri) extras.getParcelable(Intent.EXTRA_STREAM);
+				if (uri != null) {
+					Log.d(this.getClass().getName(), uri.toString());
+					final String jsonOutput = readPictureDataAndUpload(uri);
+					return parseJSONResponse(jsonOutput);
+				}
+				Log.d(this.getClass().getName(), "URI null");
+			}
+		} catch (Exception e) {
+			Log.e(this.getClass().getName(), "What?", e);
+		}
+		return null;
+	}
+
+	/**
+	 * This method uploads an image from the given uri. It does the uploading in
+	 * small chunks to make sure it doesn't over run the memory.
+	 * 
+	 * @param uri
+	 *            image location
+	 * @return map containing data from interaction
+	 */
+	private String readPictureDataAndUpload(Uri uri) {
+		try {
+			InputStream inputStream = this.getContentResolver()
+					.openInputStream(uri);
+
+			final String boundaryString = "Z."
+					+ Long.toHexString(System.currentTimeMillis())
+					+ Long.toHexString((new Random()).nextLong());
+			final String boundary = "--" + boundaryString;
+			HttpURLConnection conn = (HttpURLConnection) (new URL(
+					"http://imgur.com/api/upload.json")).openConnection();
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Content-type",
+					"multipart/form-data; boundary=\"" + boundaryString + "\"");
+			conn.setUseCaches(false);
+			conn.setDoInput(true);
+			conn.setDoOutput(true);
+			OutputStream hrout = conn.getOutputStream();
+			PrintStream hout = new PrintStream(hrout);
+			hout.println(boundary);
+			hout.println("Content-Disposition: form-data; name=\"key\"");
+			hout.println("Content-Type: text/plain");
+			hout.println();
+			hout.println(API_KEY);
+			hout.println(boundary);
+			hout.println("Content-Disposition: form-data; name=\"image\"");
+			hout.println("Content-Transfer-Encoding: base64");
+			hout.println();
+			hout.flush();
+			{
+				Base64OutputStream bhout = new Base64OutputStream(hrout, true,
+						0, new byte[0]);
+				byte[] pictureData = new byte[READ_BUFFER_SIZE_BYTES];
+				int read = 0;
+				int totalRead = 0;
+				long lastLogTime = 0;
+				while (read >= 0) {
+					read = inputStream.read(pictureData);
+					if (read > 0) {
+						bhout.write(pictureData, 0, read);
+						totalRead += read;
+						if (lastLogTime < (System.currentTimeMillis() - 1000)) {
+							lastLogTime = System.currentTimeMillis();
+							Log.d(this.getClass().getName(), "Uploaded "
+									+ totalRead + " bytes");
+						}
+					}
+				}
+				bhout.flush();
+				// This close is absolutely necessary, this tells the
+				// Base64OutputStream to finish writing the last of the data
+				// (and including the padding). Without this line, it will miss
+				// the last 4 chars in the output, missing up to 3 bytes in the
+				// final output.
+				bhout.close();
+			}
+			hout.println(boundary);
+			hout.flush();
+			hrout.close();
+
+			inputStream.close();
+
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					conn.getInputStream()));
+			StringBuilder rData = new StringBuilder();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				rData.append(line).append('\n');
+			}
+
+			return rData.toString();
+		} catch (IOException e) {
+			Log.e(this.getClass().getName(), "Upload failed", e);
+		}
+
+		return null;
+	}
+
+	private Map<String, String> parseJSONResponse(String response) {
+		try {
+			Log.d(this.getClass().getName(), response);
+
+			JSONObject json = new JSONObject(response);
+			JSONObject data = json.getJSONObject("rsp").getJSONObject("image");
+
+			HashMap<String, String> ret = new HashMap<String, String>();
+			ret.put("delete", data.getString("delete_page"));
+			ret.put("original", data.getString("original_image"));
+
+			return ret;
+		} catch (Exception e) {
+			Log.e(this.getClass().getName(),
+					"Error parsing response from imgur", e);
+		}
+		try {
+			Log.d(this.getClass().getName(), response);
+
+			JSONObject json = new JSONObject(response);
+			JSONObject data = json.getJSONObject("rsp");
+
+			HashMap<String, String> ret = new HashMap<String, String>();
+			ret.put("error", data.getString("error_code") + ", "
+					+ data.getString("stat") + ", "
+					+ data.getString("error_msg"));
+
+			return ret;
+		} catch (Exception e) {
+			Log.e(this.getClass().getName(), "Error parsing error from imgur",
+					e);
+		}
+		return null;
 	}
 }
