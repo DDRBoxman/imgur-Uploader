@@ -6,4 +6,9 @@
     <string name="open">Open</string>
     <string name="copy">Copy</string>
     <string name="share">Share</string>
+    <string name="uploading_image">Uploading image...</string>
+    <string name="preparing_image">Encoding image...</string>
+    <string name="please_wait">Please wait</string>
+    <string name="connection_error">Connection error</string>
+    <string name="share_via">Share via</string>
 </resources>

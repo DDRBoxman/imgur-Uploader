@@ -44,129 +44,137 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class ImgurUpload extends Activity {
 	private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
-	private static final int READ_BUFFER_SIZE_BYTES = 1500;
-	
-    private ProgressDialog mDialogWait;
-    private Map<String, String> mImgurResponse;
- 
-    private EditText mEditURL;
-    private EditText mEditDelete;
-    
+	private static final int READ_BUFFER_SIZE_BYTES = 1125;
+
+	private ProgressDialog mDialogWait;
+	private Map<String, String> mImgurResponse;
+
+	private TextView mEditURL;
+	private TextView mEditDelete;
+
 	/** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
-        
-        final Object savedData = getLastNonConfigurationInstance();
-        
-        mEditURL = (EditText)findViewById(R.id.url);
-    	mEditDelete = (EditText)findViewById(R.id.delete);
-    
-    	setEventHandlers();
-    	
-        //Rotated so just restore the links and don't do
-        // the rest
-        if (savedData != null)
-        {
-        	String[] latestLinks = (String[])savedData;
-        	mEditURL.setText(latestLinks[0]);
-        	mEditDelete.setText(latestLinks[1]);
-        	
-        	return;
-        }
-        
-        mDialogWait = ProgressDialog.show(this, "", 
-        		"Uploading image. Please wait...", true); 
-        
-    	Thread loadWorker = new Thread() {
-        	public void run()
-        	{   
-        		mImgurResponse = handleSendIntent(getIntent());
-        		handler.sendEmptyMessage(0); 
-        	}
-    	};
-    	
-    	loadWorker.start();
-    }
-    
-    public Object onRetainNonConfigurationInstance() {
-    	String[] latestLinks = new String[2];
-    	
-    	latestLinks[0] = mEditURL.getText().toString();
-    	latestLinks[1] = mEditDelete.getText().toString();
-    	
-        return latestLinks;
-    }
-    
-    private void setEventHandlers() {
-    	//Clicking the url copy button copies the original url
-    	//to the global clipboard
-    	findViewById(R.id.copyURL).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-       			clipboard.setText(mEditURL.getText());
-    		}
-        });
-    	
-    	//Clicking url share button displays screen to select how
-        //to share the image link
-    	findViewById(R.id.shareURL).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
-                
-    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditURL.getText().toString());
-    			shareLinkIntent.setType("text/plain");
-    			
-    			ImgurUpload.this.startActivity(
-    					Intent.createChooser(shareLinkIntent, "Share via"));
-    		}
-        });
-    	
-        //Clicking the delete copy button copies the delete url
-    	//to the global clipboard
-    	findViewById(R.id.copyDelete).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-       			clipboard.setText(mEditDelete.getText());
-    		}
-        });
-    	
-    	//Clicking delete share button displays screen to select how
-        //to share the delete link
-    	findViewById(R.id.shareDelete).setOnClickListener(new OnClickListener() {
-    		public void onClick(View v) {
-    			Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
-                
-    			shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditDelete.getText().toString());
-    			shareLinkIntent.setType("text/plain");
-    			
-    			ImgurUpload.this.startActivity(
-    					Intent.createChooser(shareLinkIntent, "Share via"));
-    		}
-        });
-    }
-    
-    private Handler handler = new Handler() {
-        public void handleMessage(Message msg) {
-            mDialogWait.dismiss();
-            
-            if (mImgurResponse == null) {
-            	Toast.makeText(ImgurUpload.this, "Connection issue", Toast.LENGTH_SHORT).show();
-            } else if (mImgurResponse.get("error") != null) {
-            	Toast.makeText(ImgurUpload.this, mImgurResponse.get("error"), Toast.LENGTH_SHORT).show();
-            } else {
-            	mEditURL.setText(mImgurResponse.get("original"));
-            	mEditDelete.setText(mImgurResponse.get("delete"));
-            }
-        }
-    };
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		final Object savedData = getLastNonConfigurationInstance();
+
+		mEditURL = (TextView) findViewById(R.id.url);
+		mEditDelete = (TextView) findViewById(R.id.delete);
+
+		setEventHandlers();
+
+		// Rotated so just restore the links and don't do
+		// the rest
+		if (savedData != null) {
+			String[] latestLinks = (String[]) savedData;
+			mEditURL.setText(latestLinks[0]);
+			mEditDelete.setText(latestLinks[1]);
+
+			return;
+		}
+
+		mDialogWait = ProgressDialog.show(this, "", getResources().getString(
+				R.string.uploading_image), true);
+
+		Thread loadWorker = new Thread() {
+			public void run() {
+				mImgurResponse = handleSendIntent(getIntent());
+				handler.sendEmptyMessage(0);
+			}
+		};
+
+		loadWorker.start();
+	}
+
+	public Object onRetainNonConfigurationInstance() {
+		String[] latestLinks = new String[2];
+
+		latestLinks[0] = mEditURL.getText().toString();
+		latestLinks[1] = mEditDelete.getText().toString();
+
+		return latestLinks;
+	}
+
+	private void setEventHandlers() {
+		// Clicking the url copy button copies the original url
+		// to the global clipboard
+		findViewById(R.id.copyURL).setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+				clipboard.setText(mEditURL.getText());
+			}
+		});
+
+		// Clicking url share button displays screen to select how
+		// to share the image link
+		findViewById(R.id.shareURL).setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
+
+				shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditURL.getText()
+						.toString());
+				shareLinkIntent.setType("text/plain");
+
+				ImgurUpload.this.startActivity(Intent.createChooser(
+						shareLinkIntent, getResources().getString(
+								R.string.share_via)));
+			}
+		});
+
+		// Clicking the delete copy button copies the delete url
+		// to the global clipboard
+		findViewById(R.id.copyDelete).setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+				clipboard.setText(mEditDelete.getText());
+			}
+		});
+
+		// Clicking delete share button displays screen to select how
+		// to share the delete link
+		findViewById(R.id.shareDelete).setOnClickListener(
+				new OnClickListener() {
+					public void onClick(View v) {
+						Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
+
+						shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditDelete
+								.getText().toString());
+						shareLinkIntent.setType("text/plain");
+
+						ImgurUpload.this.startActivity(Intent.createChooser(
+								shareLinkIntent, getResources().getString(
+										R.string.share_via)));
+					}
+				});
+	}
+
+	private Handler handler = new Handler() {
+		public void handleMessage(Message msg) {
+			mDialogWait.dismiss();
+
+			if (mImgurResponse == null) {
+				Toast.makeText(ImgurUpload.this,
+						getResources().getString(R.string.connection_error),
+						Toast.LENGTH_SHORT).show();
+			} else if (mImgurResponse.get("error") != null) {
+				Toast.makeText(ImgurUpload.this, mImgurResponse.get("error"),
+						Toast.LENGTH_SHORT).show();
+			} else {
+				mEditURL.setText(mImgurResponse.get("original"));
+				mEditDelete.setText(mImgurResponse.get("delete"));
+			}
+		}
+	};
 
 	/**
+	 * 
 	 * @return a map that contains objects with the following keys:
 	 * 
 	 *         delete - the url used to delete the uploaded image (null if
@@ -176,6 +184,7 @@ public class ImgurUpload extends Activity {
 	 *         is null if error
 	 */
 	private Map<String, String> handleSendIntent(Intent intent) {
+		Log.d(this.getClass().getName(), intent.toString());
 		Bundle extras = intent.getExtras();
 		try {
 			if (Intent.ACTION_SEND.equals(intent.getAction())
@@ -188,14 +197,22 @@ public class ImgurUpload extends Activity {
 					final String jsonOutput = readPictureDataAndUpload(uri);
 					return parseJSONResponse(jsonOutput);
 				}
-				Log.d(this.getClass().getName(), "URI null");
+				Log.e(this.getClass().getName(), "URI null");
 			}
 		} catch (Exception e) {
-			Log.e(this.getClass().getName(), "What?", e);
+			Log.e(this.getClass().getName(), "Completely unexpected error", e);
 		}
 		return null;
 	}
 
+	/**
+	 * This method uploads an image from the given uri. It does the uploading in
+	 * small chunks to make sure it doesn't over run the memory.
+	 * 
+	 * @param uri
+	 *            image location
+	 * @return map containing data from interaction
+	 */
 	private String readPictureDataAndUpload(Uri uri) {
 		try {
 			InputStream inputStream = this.getContentResolver()
@@ -230,12 +247,21 @@ public class ImgurUpload extends Activity {
 						0, new byte[0]);
 				byte[] pictureData = new byte[READ_BUFFER_SIZE_BYTES];
 				int read = 0;
+				int totalRead = 0;
+				long lastLogTime = 0;
 				while (read >= 0) {
 					read = inputStream.read(pictureData);
 					if (read > 0) {
 						bhout.write(pictureData, 0, read);
+						totalRead += read;
+						if (lastLogTime < (System.currentTimeMillis() - 250)) {
+							lastLogTime = System.currentTimeMillis();
+							Log.d(this.getClass().getName(), "Uploaded "
+									+ totalRead + " bytes");
+						}
 					}
 				}
+				Log.d(this.getClass().getName(), "Finishing upload...");
 				bhout.flush();
 				// This close is absolutely necessary, this tells the
 				// Base64OutputStream to finish writing the last of the data
@@ -243,12 +269,16 @@ public class ImgurUpload extends Activity {
 				// the last 4 chars in the output, missing up to 3 bytes in the
 				// final output.
 				bhout.close();
+				Log.d(this.getClass().getName(), "Upload complete...");
 			}
+
 			hout.println(boundary);
 			hout.flush();
 			hrout.close();
 
 			inputStream.close();
+			Log.d(this.getClass().getName(), "streams closed, "
+					+ "now waiting for response from server");
 
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
@@ -281,6 +311,22 @@ public class ImgurUpload extends Activity {
 		} catch (Exception e) {
 			Log.e(this.getClass().getName(),
 					"Error parsing response from imgur", e);
+		}
+		try {
+			Log.d(this.getClass().getName(), response);
+
+			JSONObject json = new JSONObject(response);
+			JSONObject data = json.getJSONObject("rsp");
+
+			HashMap<String, String> ret = new HashMap<String, String>();
+			ret.put("error", data.getString("error_code") + ", "
+					+ data.getString("stat") + ", "
+					+ data.getString("error_msg"));
+
+			return ret;
+		} catch (Exception e) {
+			Log.e(this.getClass().getName(), "Error parsing error from imgur",
+					e);
 		}
 		return null;
 	}
