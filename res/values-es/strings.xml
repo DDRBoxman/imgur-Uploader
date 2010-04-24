@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <resources>
     <string name="app_name">imgur</string>
     <string name="url">URL: </string>
@@ -11,4 +11,6 @@
     <string name="please_wait">Por favor espera</string>
     <string name="connection_error">Error de conexión</string>
     <string name="share_via">Compartir por</string>
+    <string name="help_info">[Traducción automática] Gracias por instalar esta aplicación. Usted puede notar que esta pantalla no hace nada en absoluto. Esto se debe a esta aplicación no sólo una función: subir imágenes. Para subir una imagen, en primer lugar encontrar una imagen en otra aplicación (por ejemplo, la Galería o Astro) y elegir la opción "Compartir" en el menú. Debe haber un elemento imgur en la lista. Para obtener más información detallada: http://wiki.github.com/phrack/imgur-Uploader/quick-usage-guide</string>
+    <string name="waiting_for_server">Esperando la respuesta...</string>
 </resources>

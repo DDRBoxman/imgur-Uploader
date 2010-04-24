@@ -1,5 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <resources>
+    <string name="help_info">Thank you for installing this app. You may notice that this screen does not do anything at all. This is because this app has only one function: it uploads images to imgur. To upload an image, first find an image in another app (e.g. Gallery or Astro) and choose "Share" in the menu. There should be an imgur item in the list. For more information try this page: http://wiki.github.com/phrack/imgur-Uploader/quick-usage-guide</string>
     <string name="app_name">imgur</string>
     <string name="url">URL: </string>
     <string name="delete">Delete: </string>
@@ -11,4 +12,5 @@
     <string name="please_wait">Please wait</string>
     <string name="connection_error">Connection error</string>
     <string name="share_via">Share via</string>
+    <string name="waiting_for_server">Waiting for server response...</string>
 </resources>
