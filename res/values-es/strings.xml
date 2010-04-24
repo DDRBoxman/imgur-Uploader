@@ -7,10 +7,8 @@
     <string name="copy">Copiar</string>
     <string name="share">Compartir</string>
     <string name="uploading_image">Subiendo imagen...</string>
-    <string name="preparing_image">Codificando imagen...</string>
-    <string name="please_wait">Por favor espera</string>
     <string name="connection_error">Error de conexión</string>
     <string name="share_via">Compartir por</string>
     <string name="help_info">[Traducción automática] Gracias por instalar esta aplicación. Usted puede notar que esta pantalla no hace nada en absoluto. Esto se debe a esta aplicación no sólo una función: subir imágenes. Para subir una imagen, en primer lugar encontrar una imagen en otra aplicación (por ejemplo, la Galería o Astro) y elegir la opción "Compartir" en el menú. Debe haber un elemento imgur en la lista. Para obtener más información detallada: http://wiki.github.com/phrack/imgur-Uploader/quick-usage-guide</string>
-    <string name="waiting_for_server">Esperando la respuesta...</string>
+    <string name="launcher_name">imgur uploader</string>
 </resources>
