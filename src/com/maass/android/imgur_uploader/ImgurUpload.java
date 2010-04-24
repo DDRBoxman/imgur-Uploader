@@ -36,6 +36,7 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -82,6 +83,13 @@ public class ImgurUpload extends Activity {
 		};
 
 		loadWorker.start();
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		mEditURL = (TextView) findViewById(R.id.url);
+		mEditDelete = (TextView) findViewById(R.id.delete);
 	}
 
 	private void setEventHandlers() {
@@ -270,7 +278,7 @@ public class ImgurUpload extends Activity {
 
 			Log.d(this.getClass().getName(), "streams closed, "
 					+ "now waiting for response from server");
-			
+
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
 			StringBuilder rData = new StringBuilder();

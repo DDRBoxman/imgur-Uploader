@@ -5,7 +5,7 @@
       android:versionName="1.2">
     <application android:icon="@drawable/icon" android:label="@string/app_name">
         <activity android:name=".ImgurUpload"
-                  android:label="@string/app_name" android:icon="@drawable/icon" android:configChanges="keyboardHidden|orientation">
+                  android:label="@string/app_name" android:icon="@drawable/icon" android:configChanges="locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|fontScale">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.GADGET" />
@@ -16,8 +16,7 @@
 				<data android:mimeType="image/*" />
 			</intent-filter>
         </activity>
-          <activity android:name=".LaunchedInfo"
-                  android:label="@string/app_name">
+          <activity android:name=".LaunchedInfo" android:label="@string/launcher_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
