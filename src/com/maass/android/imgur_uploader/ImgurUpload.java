@@ -49,6 +49,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class ImgurUpload extends Activity {
+	private static final int PROGRESS_UPDATE_INTERVAL_MS = 500;
 	private static final int CHUNK_SIZE = 9000;
 	private static final int READ_BUFFER_SIZE_BYTES = (3 * CHUNK_SIZE) / 4;
 	private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
@@ -250,7 +251,7 @@ public class ImgurUpload extends Activity {
 					if (read > 0) {
 						bhout.write(pictureData, 0, read);
 						totalRead += read;
-						if (lastLogTime < (System.currentTimeMillis() - 100)) {
+						if (lastLogTime < (System.currentTimeMillis() - PROGRESS_UPDATE_INTERVAL_MS)) {
 							lastLogTime = System.currentTimeMillis();
 							Log.d(this.getClass().getName(), "Loaded "
 									+ totalRead + " of " + dlen + " bytes ("
