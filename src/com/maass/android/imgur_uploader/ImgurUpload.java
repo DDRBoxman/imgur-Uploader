@@ -49,8 +49,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class ImgurUpload extends Activity {
+	private static final int CHUNK_SIZE = 9000;
+	private static final int READ_BUFFER_SIZE_BYTES = (3 * CHUNK_SIZE) / 4;
 	private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
-	private static final int READ_BUFFER_SIZE_BYTES = 1125;
 
 	private ProgressDialog mDialogWait;
 	private Map<String, String> mImgurResponse;
@@ -225,6 +226,7 @@ public class ImgurUpload extends Activity {
 			conn.setUseCaches(false);
 			conn.setDoInput(true);
 			conn.setDoOutput(true);
+			conn.setChunkedStreamingMode(CHUNK_SIZE);
 			OutputStream hrout = conn.getOutputStream();
 			PrintStream hout = new PrintStream(hrout);
 			hout.println(boundary);
@@ -238,8 +240,7 @@ public class ImgurUpload extends Activity {
 			hout.println();
 			hout.flush();
 			{
-				Base64OutputStream bhout = new Base64OutputStream(hrout, true,
-						0, new byte[0]);
+				Base64OutputStream bhout = new Base64OutputStream(hrout);
 				byte[] pictureData = new byte[READ_BUFFER_SIZE_BYTES];
 				int read = 0;
 				int totalRead = 0;
@@ -251,15 +252,16 @@ public class ImgurUpload extends Activity {
 						totalRead += read;
 						if (lastLogTime < (System.currentTimeMillis() - 100)) {
 							lastLogTime = System.currentTimeMillis();
-							Log.d(this.getClass().getName(), "Uploaded "
+							Log.d(this.getClass().getName(), "Loaded "
 									+ totalRead + " of " + dlen + " bytes ("
 									+ (100 * totalRead) / dlen + "%)");
 							mDialogWait.setProgress(totalRead);
 						}
+						bhout.flush();
+						hrout.flush();
 					}
 				}
 				Log.d(this.getClass().getName(), "Finishing upload...");
-				bhout.flush();
 				// This close is absolutely necessary, this tells the
 				// Base64OutputStream to finish writing the last of the data
 				// (and including the padding). Without this line, it will miss
