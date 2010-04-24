@@ -63,25 +63,16 @@ public class ImgurUpload extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
-		final Object savedData = getLastNonConfigurationInstance();
-
 		mEditURL = (TextView) findViewById(R.id.url);
 		mEditDelete = (TextView) findViewById(R.id.delete);
 
 		setEventHandlers();
 
-		// Rotated so just restore the links and don't do
-		// the rest
-		if (savedData != null) {
-			String[] latestLinks = (String[]) savedData;
-			mEditURL.setText(latestLinks[0]);
-			mEditDelete.setText(latestLinks[1]);
-
-			return;
-		}
-
-		mDialogWait = ProgressDialog.show(this, "", getResources().getString(
-				R.string.uploading_image), true);
+		mDialogWait = new ProgressDialog(this);
+		mDialogWait.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+		mDialogWait.setTitle(R.string.uploading_image);
+		mDialogWait.setIcon(R.drawable.icon);
+		mDialogWait.show();
 
 		Thread loadWorker = new Thread() {
 			public void run() {
@@ -91,15 +82,6 @@ public class ImgurUpload extends Activity {
 		};
 
 		loadWorker.start();
-	}
-
-	public Object onRetainNonConfigurationInstance() {
-		String[] latestLinks = new String[2];
-
-		latestLinks[0] = mEditURL.getText().toString();
-		latestLinks[1] = mEditDelete.getText().toString();
-
-		return latestLinks;
 	}
 
 	private void setEventHandlers() {
@@ -158,7 +140,6 @@ public class ImgurUpload extends Activity {
 	private Handler handler = new Handler() {
 		public void handleMessage(Message msg) {
 			mDialogWait.dismiss();
-
 			if (mImgurResponse == null) {
 				Toast.makeText(ImgurUpload.this,
 						getResources().getString(R.string.connection_error),
@@ -219,6 +200,7 @@ public class ImgurUpload extends Activity {
 					.openAssetFileDescriptor(uri, "r");
 			final long dlen = afd.getLength();
 			afd.close();
+			mDialogWait.setMax((int) dlen);
 
 			InputStream inputStream = this.getContentResolver()
 					.openInputStream(uri);
@@ -264,6 +246,7 @@ public class ImgurUpload extends Activity {
 							Log.d(this.getClass().getName(), "Uploaded "
 									+ totalRead + " of " + dlen + " bytes ("
 									+ (100 * totalRead) / dlen + "%)");
+							mDialogWait.setProgress(totalRead);
 						}
 					}
 				}
@@ -276,6 +259,7 @@ public class ImgurUpload extends Activity {
 				// final output.
 				bhout.close();
 				Log.d(this.getClass().getName(), "Upload complete...");
+				mDialogWait.setProgress(totalRead);
 			}
 
 			hout.println(boundary);
@@ -283,9 +267,10 @@ public class ImgurUpload extends Activity {
 			hrout.close();
 
 			inputStream.close();
+
 			Log.d(this.getClass().getName(), "streams closed, "
 					+ "now waiting for response from server");
-
+			
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
 			StringBuilder rData = new StringBuilder();

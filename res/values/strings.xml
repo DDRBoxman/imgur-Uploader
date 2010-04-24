@@ -12,4 +12,5 @@
     <string name="please_wait">Please wait</string>
     <string name="connection_error">Connection error</string>
     <string name="share_via">Share via</string>
+    <string name="waiting_for_server">Waiting for server response...</string>
 </resources>
