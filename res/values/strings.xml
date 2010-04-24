@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <resources>
-    <string name="help_info">Thank you for installing this app. You may notice that this screen does not do anything at all. This is because this app has only one function: it uploads images to imgur. To upload an image, first find an image in another app (e.g. Gallery or Astro) and choose "Share" in the menu. There should be an imgur item in the list. </string>
+    <string name="help_info">Thank you for installing this app. You may notice that this screen does not do anything at all. This is because this app has only one function: it uploads images to imgur. To upload an image, first find an image in another app (e.g. Gallery or Astro) and choose "Share" in the menu. There should be an imgur item in the list. For more information try this page: http://wiki.github.com/phrack/imgur-Uploader/quick-usage-guide</string>
     <string name="app_name">imgur</string>
     <string name="url">URL: </string>
     <string name="delete">Delete: </string>

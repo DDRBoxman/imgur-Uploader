@@ -4,10 +4,10 @@
 	<ScrollView android:layout_width="fill_parent" android:layout_height="fill_parent">
 		<LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingBottom="20pt" android:paddingLeft="5pt" android:paddingRight="5pt" android:paddingTop="5pt">
 			<TextView android:layout_width="wrap_content" android:id="@+id/InfoTextView"
-				android:text="@string/help_info" android:autoLink="all"
+				android:autoLink="all"
 				android:visibility="visible" android:scrollbars="vertical"
 				android:scrollbarAlwaysDrawHorizontalTrack="false"
-				android:scrollbarAlwaysDrawVerticalTrack="false" android:layout_height="wrap_content">
+				android:scrollbarAlwaysDrawVerticalTrack="false" android:layout_height="wrap_content" android:text="@string/help_info">
 			</TextView>
 		</LinearLayout>
 	</ScrollView>
