@@ -8,7 +8,7 @@
     	android:layout_width="fill_parent" android:layout_height="wrap_content">
 
 		<TextView android:text="@+string/url" android:id="@+id/tvURL" android:layout_height="fill_parent" android:layout_width="wrap_content"></TextView>
-		<TextView android:id="@+id/url" android:layout_height="fill_parent" android:autoLink="web" android:layout_width="wrap_content" android:layout_weight="1" android:textStyle="bold" android:textSize="12pt"></TextView>
+		<TextView android:id="@+id/url" android:layout_height="fill_parent" android:autoLink="web" android:layout_width="wrap_content" android:layout_weight="1" android:textStyle="bold" android:textSize="28sp"></TextView>
 	</LinearLayout>
 	
 	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
