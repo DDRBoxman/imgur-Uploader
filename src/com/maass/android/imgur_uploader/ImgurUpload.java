@@ -34,9 +34,11 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -160,6 +162,14 @@ public class ImgurUpload extends Activity {
 			} else {
 				mEditURL.setText(mImgurResponse.get("original"));
 				mEditDelete.setText(mImgurResponse.get("delete"));
+				
+				//store result in database
+				HistoryDatabase histData = new HistoryDatabase(getBaseContext());
+				SQLiteDatabase data = histData.getWritableDatabase();
+				ContentValues content = new ContentValues();
+				content.put("link", mImgurResponse.get("original"));
+				content.put("link_delete", mImgurResponse.get("delete"));
+				data.insert("imgur_history",null,content);
 			}
 		}
 	};
