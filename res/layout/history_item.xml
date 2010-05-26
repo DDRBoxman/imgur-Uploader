@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<RelativeLayout
+<AbsoluteLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_height="wrap_content" android:layout_width="wrap_content" android:clickable="false">
-	
-	
+	android:layout_height="wrap_content"
+	android:layout_width="wrap_content"
+	android:clickable="false">
+
+	<ImageView
+		android:layout_height="wrap_content"
+		android:layout_width="wrap_content"
+		android:id="@+id/ThumbnailImage" />
+	<RadioButton
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:id="@+id/ImageRadio"
+		android:clickable="false"
+		android:focusable="false" />
 		
-	
-	
-
-
-<ImageView android:layout_below="@+id/ImageLinkDelete" android:layout_height="wrap_content" android:layout_width="wrap_content" android:id="@+id/ThumbnailImage"></ImageView>
-
-
-<RadioButton android:layout_width="wrap_content" android:layout_below="@+id/ThumbnailImage" android:layout_height="wrap_content" android:id="@+id/ImageRadio" android:clickable="false" android:focusable="false"></RadioButton>
-</RelativeLayout>
+</AbsoluteLayout>
 

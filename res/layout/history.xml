@@ -6,20 +6,21 @@
   
 	<GridView 
 		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
 		android:id="@+id/HistoryGridView"
-		android:numColumns="auto_fit"
 		android:verticalSpacing="10dp"
 		android:horizontalSpacing="10dp"
-		android:columnWidth="90dp"
 		android:stretchMode="columnWidth"
-		android:gravity="center"/>
+		android:gravity="center"
+		android:columnWidth="200dp" android:layout_height="wrap_content" android:layout_above="@+id/ImageActionLayout" android:layout_alignParentTop="true" android:numColumns="auto_fit"/>
 		
 	<RelativeLayout
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:id="@+id/ImageActionLayout"
-		android:background="@android:color/background_dark" android:layout_below="@+id/HistoryGridView" android:layout_centerHorizontal="true" android:layout_alignParentBottom="true" android:gravity="bottom|center_horizontal">
+		android:background="@android:color/background_dark"
+		android:layout_centerHorizontal="true"
+		android:layout_alignParentBottom="true"
+		android:gravity="bottom|center_horizontal">
 	
 		<ImageButton
 			android:id="@+id/ImageButton01"

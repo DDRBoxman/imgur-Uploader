@@ -37,6 +37,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -50,6 +51,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.text.ClipboardManager;
 import android.util.Log;
 import android.view.View;
@@ -65,7 +68,8 @@ public class ImgurUpload extends Activity {
 
 	private ProgressDialog mDialogWait;
 	private Map<String, String> mImgurResponse;
-
+	private Uri imageLocation;
+	
 	private TextView mEditURL;
 	private TextView mEditDelete;
 
@@ -173,7 +177,7 @@ public class ImgurUpload extends Activity {
 				
 				//create thumbnail
 				if (mImgurResponse.get("image_hash").length() > 0) {
-					createThumbnail(mImgurResponse.get("uri"));
+					createThumbnail(imageLocation);
 				}
 				
 				//store result in database
@@ -186,6 +190,7 @@ public class ImgurUpload extends Activity {
 				content.put("local_thumbnail", imageUri.toString());
 				data.insert("imgur_history",null,content);
 				data.close();
+				histData.close();
 			}
 		}
 	};
@@ -211,8 +216,8 @@ public class ImgurUpload extends Activity {
 				Uri uri = (Uri) extras.getParcelable(Intent.EXTRA_STREAM);
 				if (uri != null) {
 					Log.d(this.getClass().getName(), uri.toString());
-					//Put uri in response so that the create thumbnail finction can get to it
-					mImgurResponse.put("uri",uri.toString());
+					//store uri so we can create the thumbnail if we succeed
+					imageLocation = uri;
 					final String jsonOutput = readPictureDataAndUpload(uri);
 					return parseJSONResponse(jsonOutput);
 				}
@@ -233,6 +238,7 @@ public class ImgurUpload extends Activity {
 	 * @return map containing data from interaction
 	 */
 	private String readPictureDataAndUpload(Uri uri) {
+		Log.i("imgur-upload",uri.toString());
 		try {
 			final AssetFileDescriptor afd = this.getContentResolver()
 					.openAssetFileDescriptor(uri, "r");
@@ -332,12 +338,14 @@ public class ImgurUpload extends Activity {
 	 * @param uri
 	 *            image location
 	 */
-	private void createThumbnail(String uriString) {
-		Bitmap bitmapOrg = BitmapFactory.decodeFile(Uri.parse(uriString).getPath());
+	private void createThumbnail(Uri uri) {
+		Bitmap bitmapOrg;
+		try {
+			bitmapOrg = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
 		int width = bitmapOrg.getWidth();
         int height = bitmapOrg.getHeight();
-        int newWidth = 120;
-        int newHeight = 120;
+        int newWidth = 200;
+        int newHeight = 200;
         float scaleWidth = ((float) newWidth) / width;
         float scaleHeight = ((float) newHeight) / height;
         Matrix matrix = new Matrix();
@@ -346,11 +354,16 @@ public class ImgurUpload extends Activity {
         Bitmap resizedBitmap = Bitmap.createBitmap(bitmapOrg, 0, 0,
                 width, height, matrix, true);
         
-        try {
-			FileOutputStream f = openFileOutput(mImgurResponse.get("image_hash") + "s.png", Context.MODE_PRIVATE);
-		} catch (FileNotFoundException e) {
+        FileOutputStream f = openFileOutput(mImgurResponse.get("image_hash") + "s.png", Context.MODE_PRIVATE);
+
+        resizedBitmap.compress(Bitmap.CompressFormat.PNG, 90, f);
+        
+		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 	}
 	
@@ -360,7 +373,7 @@ public class ImgurUpload extends Activity {
 
 			JSONObject json = new JSONObject(response);
 			JSONObject data = json.getJSONObject("rsp").getJSONObject("image");
-
+			
 			HashMap<String, String> ret = new HashMap<String, String>();
 			ret.put("delete", data.getString("delete_page"));
 			ret.put("original", data.getString("original_image"));

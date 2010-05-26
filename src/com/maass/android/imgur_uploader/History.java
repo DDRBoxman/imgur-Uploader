@@ -1,11 +1,9 @@
 package com.maass.android.imgur_uploader;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
 
 import org.json.JSONObject;
 
@@ -20,10 +18,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.GridView;
-import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.SimpleCursorAdapter;
 import android.widget.AdapterView.OnItemClickListener;
@@ -31,6 +27,7 @@ import android.widget.AdapterView.OnItemClickListener;
 public class History extends Activity{
 
 	private SQLiteDatabase histDB;
+	private Cursor vCursor;
 	private int pickedItem;
 	private GridView historyGrid;
 	private RadioButton currentRadio;
@@ -45,7 +42,7 @@ public class History extends Activity{
 			histDB = histData.getWritableDatabase();
 		}
 		
-		Cursor vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
+		vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
 		
 		if (vCursor.getCount() > 0) {
 			setContentView(R.layout.history);
@@ -97,8 +94,9 @@ public class History extends Activity{
 			if (requestCode == CHOOSE_AN_IMAGE_REQUEST) {
 				Uri chosenImageUri = data.getData();
 				Intent intent = new Intent(); 
-				intent.setData(chosenImageUri); 
+				//intent.setData(chosenImageUri); 
 				intent.setAction(Intent.ACTION_SEND);
+				intent.putExtra(Intent.EXTRA_STREAM, chosenImageUri);
 				intent.setClass(this, ImgurUpload.class);
 				startActivity(intent);
 			}
@@ -114,18 +112,21 @@ public class History extends Activity{
 			HistoryDatabase histData = new HistoryDatabase(this);
 			histDB = histData.getWritableDatabase();
 		}
+		refreshImageGrid();
 	}
 	
 	@Override
-	public void onPause() {
-		super.onPause();
-		
+	public void onStop() {
+		super.onStop();
+		//close cursor
+		vCursor.close();
 		//close database
 		histDB.close();
+		histDB = null;
 	}
 	
 	private void refreshImageGrid () {
-		Cursor vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
+		vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
 		((SimpleCursorAdapter)historyGrid.getAdapter()).changeCursor(vCursor);
 	}
 	
