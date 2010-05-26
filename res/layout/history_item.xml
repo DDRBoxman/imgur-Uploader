@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  android:layout_width="wrap_content"
-  android:layout_height="wrap_content">
 
-<EditText android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/ImageLink" android:text="Image Link :D"></EditText>
-<EditText android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Delete Link" android:id="@+id/ImageLinkDelete"></EditText>
-</LinearLayout>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_height="wrap_content" android:layout_width="wrap_content" android:clickable="false">
+	
+	
+		
+	
+	
+
+
+<ImageView android:layout_below="@+id/ImageLinkDelete" android:layout_height="wrap_content" android:layout_width="wrap_content" android:id="@+id/ThumbnailImage"></ImageView>
+
+
+<RadioButton android:layout_width="wrap_content" android:layout_below="@+id/ThumbnailImage" android:layout_height="wrap_content" android:id="@+id/ImageRadio" android:clickable="false" android:focusable="false"></RadioButton>
+</RelativeLayout>
+

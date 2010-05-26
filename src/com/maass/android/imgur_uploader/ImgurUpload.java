@@ -18,6 +18,9 @@
 package com.maass.android.imgur_uploader;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -35,10 +38,14 @@ import org.json.JSONObject;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -81,6 +88,7 @@ public class ImgurUpload extends Activity {
 
 		Thread loadWorker = new Thread() {
 			public void run() {
+				//Upload Image
 				mImgurResponse = handleSendIntent(getIntent());
 				handler.sendEmptyMessage(0);
 			}
@@ -163,13 +171,21 @@ public class ImgurUpload extends Activity {
 				mEditURL.setText(mImgurResponse.get("original"));
 				mEditDelete.setText(mImgurResponse.get("delete"));
 				
+				//create thumbnail
+				if (mImgurResponse.get("image_hash").length() > 0) {
+					createThumbnail(mImgurResponse.get("uri"));
+				}
+				
 				//store result in database
 				HistoryDatabase histData = new HistoryDatabase(getBaseContext());
 				SQLiteDatabase data = histData.getWritableDatabase();
 				ContentValues content = new ContentValues();
-				content.put("link", mImgurResponse.get("original"));
-				content.put("link_delete", mImgurResponse.get("delete"));
+				content.put("image_hash", mImgurResponse.get("image_hash"));
+				content.put("delete_hash", mImgurResponse.get("delete_hash"));
+				Uri imageUri = Uri.parse(getFilesDir() + "/" + mImgurResponse.get("image_hash") + "s.png");
+				content.put("local_thumbnail", imageUri.toString());
 				data.insert("imgur_history",null,content);
+				data.close();
 			}
 		}
 	};
@@ -195,6 +211,8 @@ public class ImgurUpload extends Activity {
 				Uri uri = (Uri) extras.getParcelable(Intent.EXTRA_STREAM);
 				if (uri != null) {
 					Log.d(this.getClass().getName(), uri.toString());
+					//Put uri in response so that the create thumbnail finction can get to it
+					mImgurResponse.put("uri",uri.toString());
 					final String jsonOutput = readPictureDataAndUpload(uri);
 					return parseJSONResponse(jsonOutput);
 				}
@@ -308,6 +326,34 @@ public class ImgurUpload extends Activity {
 		return null;
 	}
 
+	/**
+	 * This method uploads create a thumbnail for local use from the uri
+	 * 
+	 * @param uri
+	 *            image location
+	 */
+	private void createThumbnail(String uriString) {
+		Bitmap bitmapOrg = BitmapFactory.decodeFile(Uri.parse(uriString).getPath());
+		int width = bitmapOrg.getWidth();
+        int height = bitmapOrg.getHeight();
+        int newWidth = 120;
+        int newHeight = 120;
+        float scaleWidth = ((float) newWidth) / width;
+        float scaleHeight = ((float) newHeight) / height;
+        Matrix matrix = new Matrix();
+        matrix.postScale(scaleWidth, scaleHeight);
+        
+        Bitmap resizedBitmap = Bitmap.createBitmap(bitmapOrg, 0, 0,
+                width, height, matrix, true);
+        
+        try {
+			FileOutputStream f = openFileOutput(mImgurResponse.get("image_hash") + "s.png", Context.MODE_PRIVATE);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	private Map<String, String> parseJSONResponse(String response) {
 		try {
 			Log.d(this.getClass().getName(), response);
@@ -318,6 +364,9 @@ public class ImgurUpload extends Activity {
 			HashMap<String, String> ret = new HashMap<String, String>();
 			ret.put("delete", data.getString("delete_page"));
 			ret.put("original", data.getString("original_image"));
+			ret.put("delete_hash", data.getString("delete_hash"));
+			ret.put("image_hash", data.getString("image_hash"));
+			ret.put("small_thumbnail", data.getString("small_thumbnail"));
 
 			return ret;
 		} catch (Exception e) {

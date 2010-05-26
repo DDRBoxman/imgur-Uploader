@@ -1,7 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  android:layout_width="wrap_content"
-  android:layout_height="wrap_content">
-<ListView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/HistoryListView"></ListView>
-</LinearLayout>
+<RelativeLayout
+	 xmlns:android="http://schemas.android.com/apk/res/android"
+	 android:layout_width="wrap_content"
+	 android:layout_height="wrap_content" android:gravity="center_horizontal">
+  
+	<GridView 
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:id="@+id/HistoryGridView"
+		android:numColumns="auto_fit"
+		android:verticalSpacing="10dp"
+		android:horizontalSpacing="10dp"
+		android:columnWidth="90dp"
+		android:stretchMode="columnWidth"
+		android:gravity="center"/>
+		
+	<RelativeLayout
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:id="@+id/ImageActionLayout"
+		android:background="@android:color/background_dark" android:layout_below="@+id/HistoryGridView" android:layout_centerHorizontal="true" android:layout_alignParentBottom="true" android:gravity="bottom|center_horizontal">
+	
+		<ImageButton
+			android:id="@+id/ImageButton01"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:src="@android:drawable/ic_menu_share" android:onClick="shareImage"/>
+		<ImageButton android:layout_toRightOf="@+id/ImageButton01"
+			android:id="@+id/ImageButton03"
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:src="@android:drawable/ic_menu_view" android:onClick="viewImage"/>
+		<ImageButton
+			android:layout_toRightOf="@+id/ImageButton03"
+			android:id="@+id/ImageButton02"
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:src="@android:drawable/ic_menu_delete"
+			android:onClick="deleteClick"/>
+		
+	
+
+</RelativeLayout>
+
+</RelativeLayout>
