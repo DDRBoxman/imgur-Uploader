@@ -1,0 +1,249 @@
+package com.maass.android.imgur_uploader;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import org.json.JSONObject;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Path;
+import android.net.Uri;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.GridView;
+import android.widget.RadioButton;
+import android.widget.SimpleCursorAdapter;
+import android.widget.Toast;
+import android.widget.AdapterView.OnItemClickListener;
+
+public class History extends Activity{
+
+	private SQLiteDatabase histDB = null;
+	private Cursor vCursor;
+	private int pickedItem;
+	private GridView historyGrid;
+	final int CHOOSE_AN_IMAGE_REQUEST = 2910;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		
+		if (histDB == null) {
+			HistoryDatabase histData = new HistoryDatabase(this);
+			histDB = histData.getWritableDatabase();
+		}
+		
+		getCursor();
+		
+		Log.i("","" + vCursor.getCount());
+		String[] temp = vCursor.getColumnNames();
+		for (int i=0; i<temp.length; i++) {
+			Log.i("",temp[i]);
+		}
+		
+		if (vCursor.getCount() > 0) {
+			setContentView(R.layout.history);
+			SimpleCursorAdapter entry = new SimpleCursorAdapter(this, 
+					R.layout.history_item, vCursor , new String[] {"local_thumbnail"} , new int[] {R.id.ThumbnailImage}); 
+			historyGrid = (GridView) findViewById(R.id.HistoryGridView);
+			historyGrid.setAdapter(entry);
+			historyGrid.setOnItemClickListener(mMessageClickedHandler);
+		} else {
+			setContentView(R.layout.info);
+		}
+	}
+	
+	private void getCursor() {
+		vCursor = histDB.query("imgur_history", new String[] {"hash as image_hash"
+				,"Min(_id) as _id"
+				,"Min(case when key = 'local_thumbnail' then value end) as local_thumbnail"
+				,"Min(case when key = 'image_url' then value end) as image_url"
+				,"Min(case when key = 'delete_hash' then value end) as delete_hash"}
+				, null, null, "hash", null, null);
+	}
+	
+	//setup menu
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+	    MenuInflater inflater = getMenuInflater();
+	    inflater.inflate(R.menu.options_menu, menu);
+	    
+	    //display about page
+	    menu.findItem(R.id.AboutMenu).setIntent(new Intent(this, LaunchedInfo.class));
+	    
+	    return true;
+	}
+	
+	//handle menu selections
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    switch (item.getItemId()) {
+	    case R.id.UploadMenu:
+	    	uploadImageFromProvider();
+	        return true;
+	    }
+	    return false;
+	}
+	
+	//send an intent that we want an image
+	private void uploadImageFromProvider () {
+		Intent intent = new Intent(); 
+		intent.setType("image/*"); 
+		intent.setAction(Intent.ACTION_PICK);
+		startActivityForResult(Intent.createChooser(intent, getString(R.string.choose_a_viewer)) , CHOOSE_AN_IMAGE_REQUEST);
+	}
+	
+	
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		if (resultCode == RESULT_OK) {
+			//we got an Image now upload it :D
+			if (requestCode == CHOOSE_AN_IMAGE_REQUEST) {
+				Uri chosenImageUri = data.getData();
+				Intent intent = new Intent(); 
+				//intent.setData(chosenImageUri); 
+				intent.setAction(Intent.ACTION_SEND);
+				intent.putExtra(Intent.EXTRA_STREAM, chosenImageUri);
+				intent.setClass(this, LaunchUploadDummy.class);
+				startActivity(intent);
+			}
+		}
+	}
+	
+	@Override
+	public void onResume() {
+		super.onResume();
+		
+		if (histDB == null) {
+			//if the database is closed reopen it
+			HistoryDatabase histData = new HistoryDatabase(this);
+			histDB = histData.getWritableDatabase();
+		}
+		refreshImageGrid();
+	}
+	
+	@Override
+	public void onStop() {
+		super.onStop();
+		//close cursor
+		vCursor.close();
+		//close database
+		histDB.close();
+		histDB = null;
+	}
+	
+	public void refreshImageGrid () {
+		if (historyGrid != null) {
+			getCursor();
+			((SimpleCursorAdapter)historyGrid.getAdapter()).changeCursor(vCursor);
+		}
+	}
+	
+	private OnItemClickListener mMessageClickedHandler = new OnItemClickListener() {
+		@Override
+		public void onItemClick(AdapterView parent, View v, int position, long id) {
+			//remove check from old image
+			for (int i=0; i<parent.getChildCount(); i++) {
+				((RadioButton) (parent.getChildAt(i).findViewById(R.id.ImageRadio))).setChecked(false);
+			}
+			
+			//set radio on current thumbnail
+			RadioButton radio = (RadioButton) v.findViewById(R.id.ImageRadio);
+			radio.setChecked(true);
+
+			pickedItem = position;
+		}
+	};
+	
+	public void deleteClick(View target) {
+		//ensure that there are images left
+		if (historyGrid.getAdapter().getCount() > 0 && pickedItem > -1) {
+			Cursor item = (Cursor) historyGrid.getItemAtPosition(pickedItem);
+			if (item != null) {
+				//remove check from old image
+				for (int i=0; i<historyGrid.getChildCount(); i++) {
+					((RadioButton) (historyGrid.getChildAt(i).findViewById(R.id.ImageRadio))).setChecked(false);
+				}
+				deleteImage(item.getString(item.getColumnIndex("delete_hash")), item.getString(item.getColumnIndex("image_hash")) ,item.getString(item.getColumnIndex("local_thumbnail")));
+				pickedItem = -1;
+				refreshImageGrid();
+			}
+		}
+	}
+	
+	public void viewImage(View target) {
+		//ensure that there are images left
+		if (historyGrid.getAdapter().getCount() > 0 && pickedItem > -1) {
+			Cursor item = (Cursor) historyGrid.getItemAtPosition(pickedItem);
+			if (item != null) {
+				Intent viewIntent = new Intent("android.intent.action.VIEW", Uri.parse(item.getString(item.getColumnIndex("image_url"))));
+				startActivity(viewIntent);
+			}
+		}
+	}
+	
+	public void shareImage(View target) {
+		//ensure that there are images left
+		if (historyGrid.getAdapter().getCount() > 0 && pickedItem > -1) {
+			Cursor item = (Cursor) historyGrid.getItemAtPosition(pickedItem);
+			if (item != null) {
+				Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
+	
+				shareLinkIntent.putExtra(Intent.EXTRA_TEXT, item.getString(item.getColumnIndex("image_url")));
+				shareLinkIntent.setType("text/plain");
+	
+				History.this.startActivity(Intent.createChooser(
+						shareLinkIntent, getResources().getString(
+								R.string.share_via)));
+			}
+		}
+	}
+	
+	private void deleteImage(String deleteHash, String imageHash, String localThumbnail) {
+		try {
+			HttpURLConnection conn = (HttpURLConnection) (new URL(
+			"http://imgur.com/api/delete/" + deleteHash + ".json")).openConnection();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					conn.getInputStream()));
+			StringBuilder rData = new StringBuilder();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				rData.append(line).append('\n');
+			}
+			
+			JSONObject json = new JSONObject(rData.toString());
+			JSONObject data;
+			if (json.has("rsp")) {
+				data = json.getJSONObject("rsp");
+			} else if (json.has("error")){
+				data = json.getJSONObject("error");
+			} else {
+				data = null;
+			}
+			
+			if (data != null) {
+				if ((data.has("stat") && data.getString("stat").equals("ok")) || (data.has("error_code") && data.getInt("error_code") == 4002)) {
+					histDB.delete("imgur_history", "hash='" + imageHash + "'", null);
+					File f = new File(localThumbnail);
+					f.delete();
+				}
+			} else {
+				Toast.makeText(this, getString(R.string.delete_failed) + " " + rData.toString(), Toast.LENGTH_SHORT).show();
+				Log.i("","Delete Failed" + rData.toString());
+			}
+			
+		} catch (Exception e) {
+			Log.e(this.getClass().getName(), "Delete failed", e);
+		}
+	}
+}
