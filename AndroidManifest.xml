@@ -3,7 +3,7 @@
       package="com.maass.android.imgur_uploader"
       android:versionName="1.2.1" android:versionCode="4" android:installLocation="auto">
     <application android:icon="@drawable/icon" android:label="@string/app_name">
-        <activity android:name=".ImgurUpload"
+        <activity android:name="LaunchUploadDummy"
                   android:label="@string/app_name" android:icon="@drawable/icon" android:configChanges="locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|fontScale">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -15,6 +15,8 @@
 				<data android:mimeType="image/*" />
 			</intent-filter>
         </activity>
+         <service android:name="ImgurUpload">
+         </service>
           <activity android:label="@string/launcher_name" android:name="History">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

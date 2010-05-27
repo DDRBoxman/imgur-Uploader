@@ -8,7 +8,7 @@ import android.util.Log;
 public class HistoryDatabase extends SQLiteOpenHelper {
 
 	private static final String DATABASE_NAME = "imgur.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
     private static final String IMGUR_TABLE_NAME = "imgur_history";
     
     private static final String IMGUR_TABLE_CREATE =
@@ -16,6 +16,7 @@ public class HistoryDatabase extends SQLiteOpenHelper {
                 "_id" + " INTEGER PRIMARY KEY, " +
                 "image_hash" + " TEXT, " +
                 "delete_hash" + " TEXT, " +
+                "image_url" + " TEXT, " +
                 "local_thumbnail" + " TEXT, " +
                 "created" + " INTEGER);";
 

@@ -18,7 +18,6 @@
 package com.maass.android.imgur_uploader;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,165 +34,95 @@ import java.util.Random;
 import org.apache.commons.codec_1_4.binary.Base64OutputStream;
 import org.json.JSONObject;
 
-import android.app.Activity;
-import android.app.ProgressDialog;
-import android.content.ContentResolver;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
-import android.content.res.Configuration;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.os.ParcelFileDescriptor;
+import android.os.IBinder;
 import android.provider.MediaStore;
-import android.text.ClipboardManager;
 import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.TextView;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
-public class ImgurUpload extends Activity {
+public class ImgurUpload extends Service {
 	private static final int PROGRESS_UPDATE_INTERVAL_MS = 250;
 	private static final int CHUNK_SIZE = 9000;
 	private static final int READ_BUFFER_SIZE_BYTES = (3 * CHUNK_SIZE) / 4;
 	private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
 
-	private ProgressDialog mDialogWait;
+	private Notification mProgressNotification;
+	private static final int NOTIFICATION_ID = 999;
+	private NotificationManager mNotificationManager;
+	
 	private Map<String, String> mImgurResponse;
 	private Uri imageLocation;
+
+	@Override
+	public void onStart(Intent intent, int startId) {
+		passIntent(intent);
+	}
+
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		passIntent(intent);
+	    // We want this service to continue running until it is explicitly
+	    // stopped, so return sticky.
+	    return START_NOT_STICKY;
+	}
 	
-	private TextView mEditURL;
-	private TextView mEditDelete;
-
-	/** Called when the activity is first created. */
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.main);
-
-		mEditURL = (TextView) findViewById(R.id.url);
-		mEditDelete = (TextView) findViewById(R.id.delete);
-
-		setEventHandlers();
-
-		mDialogWait = new ProgressDialog(this);
-		mDialogWait.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-		mDialogWait.setTitle(R.string.uploading_image);
-		mDialogWait.setIcon(R.drawable.icon);
-		mDialogWait.show();
-
-		Thread loadWorker = new Thread() {
-			public void run() {
-				//Upload Image
-				mImgurResponse = handleSendIntent(getIntent());
-				handler.sendEmptyMessage(0);
-			}
-		};
-
-		loadWorker.start();
+	private void passIntent(Intent intent) {
+		mImgurResponse = handleSendIntent(intent);
+		handleResponse();
 	}
+	
 
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		super.onConfigurationChanged(newConfig);
-		mEditURL = (TextView) findViewById(R.id.url);
-		mEditDelete = (TextView) findViewById(R.id.delete);
-	}
-
-	private void setEventHandlers() {
-		// Clicking the url copy button copies the original url
-		// to the global clipboard
-		findViewById(R.id.copyURL).setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-				clipboard.setText(mEditURL.getText());
+	private void handleResponse() {
+		
+		//close progress notification
+		mNotificationManager.cancel(NOTIFICATION_ID);
+		
+		String notificationMessage = getString(R.string.upload_success);
+		
+		if (mImgurResponse == null) {
+			notificationMessage = getString(R.string.connection_failed);
+		} else if (mImgurResponse.get("error") != null) {
+			notificationMessage = getString(R.string.unknown_error) + mImgurResponse.get("error");
+		} else {				
+			//create thumbnail
+			if (mImgurResponse.get("image_hash").length() > 0) {
+				createThumbnail(imageLocation);
 			}
-		});
-
-		// Clicking url share button displays screen to select how
-		// to share the image link
-		findViewById(R.id.shareURL).setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
-
-				shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditURL.getText()
-						.toString());
-				shareLinkIntent.setType("text/plain");
-
-				ImgurUpload.this.startActivity(Intent.createChooser(
-						shareLinkIntent, getResources().getString(
-								R.string.share_via)));
-			}
-		});
-
-		// Clicking the delete copy button copies the delete url
-		// to the global clipboard
-		findViewById(R.id.copyDelete).setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-				clipboard.setText(mEditDelete.getText());
-			}
-		});
-
-		// Clicking delete share button displays screen to select how
-		// to share the delete link
-		findViewById(R.id.shareDelete).setOnClickListener(
-				new OnClickListener() {
-					public void onClick(View v) {
-						Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
-
-						shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mEditDelete
-								.getText().toString());
-						shareLinkIntent.setType("text/plain");
-
-						ImgurUpload.this.startActivity(Intent.createChooser(
-								shareLinkIntent, getResources().getString(
-										R.string.share_via)));
-					}
-				});
-	}
-
-	private Handler handler = new Handler() {
-		public void handleMessage(Message msg) {
-			mDialogWait.dismiss();
-			if (mImgurResponse == null) {
-				Toast.makeText(ImgurUpload.this,
-						getResources().getString(R.string.connection_error),
-						Toast.LENGTH_SHORT).show();
-			} else if (mImgurResponse.get("error") != null) {
-				Toast.makeText(ImgurUpload.this, mImgurResponse.get("error"),
-						Toast.LENGTH_SHORT).show();
-			} else {
-				mEditURL.setText(mImgurResponse.get("original"));
-				mEditDelete.setText(mImgurResponse.get("delete"));
-				
-				//create thumbnail
-				if (mImgurResponse.get("image_hash").length() > 0) {
-					createThumbnail(imageLocation);
-				}
-				
-				//store result in database
-				HistoryDatabase histData = new HistoryDatabase(getBaseContext());
-				SQLiteDatabase data = histData.getWritableDatabase();
-				ContentValues content = new ContentValues();
-				content.put("image_hash", mImgurResponse.get("image_hash"));
-				content.put("delete_hash", mImgurResponse.get("delete_hash"));
-				Uri imageUri = Uri.parse(getFilesDir() + "/" + mImgurResponse.get("image_hash") + "s.png");
-				content.put("local_thumbnail", imageUri.toString());
-				data.insert("imgur_history",null,content);
-				data.close();
-				histData.close();
-			}
+			
+			//store result in database
+			HistoryDatabase histData = new HistoryDatabase(getBaseContext());
+			SQLiteDatabase data = histData.getWritableDatabase();
+			ContentValues content = new ContentValues();
+			content.put("image_hash", mImgurResponse.get("image_hash"));
+			content.put("delete_hash", mImgurResponse.get("delete_hash"));
+			content.put("image_url", mImgurResponse.get("original_image"));
+			Uri imageUri = Uri.parse(getFilesDir() + "/" + mImgurResponse.get("image_hash") + "s.png");
+			content.put("local_thumbnail", imageUri.toString());
+			data.insert("imgur_history",null,content);
+			data.close();
+			histData.close();
+			
 		}
-	};
+		
+		//notification with result
+		Intent mtActivity = new Intent(this,History.class);
+		Notification notification = new Notification(R.drawable.icon, notificationMessage, System.currentTimeMillis());
+	    notification.setLatestEventInfo(this,getString(R.string.app_name),notificationMessage,PendingIntent.getActivity(this.getBaseContext(), 0, mtActivity,PendingIntent.FLAG_CANCEL_CURRENT));
+		notification.flags |= Notification.FLAG_AUTO_CANCEL;
+	    mNotificationManager.notify(NOTIFICATION_ID, notification);
+	}
 
 	/**
 	 * 
@@ -206,6 +135,10 @@ public class ImgurUpload extends Activity {
 	 *         is null if error
 	 */
 	private Map<String, String> handleSendIntent(Intent intent) {
+		
+		String ns = Context.NOTIFICATION_SERVICE;
+		mNotificationManager = (NotificationManager) getSystemService(ns);
+		
 		Log.d(this.getClass().getName(), intent.toString());
 		Bundle extras = intent.getExtras();
 		try {
@@ -238,13 +171,24 @@ public class ImgurUpload extends Activity {
 	 * @return map containing data from interaction
 	 */
 	private String readPictureDataAndUpload(Uri uri) {
-		Log.i("imgur-upload",uri.toString());
 		try {
 			final AssetFileDescriptor afd = this.getContentResolver()
 					.openAssetFileDescriptor(uri, "r");
 			final long dlen = afd.getLength();
 			afd.close();
-			mDialogWait.setMax((int) dlen);
+			
+			//Create custom progress notification
+			mProgressNotification = new Notification();
+			//set as ongoing
+			mProgressNotification.flags |= Notification.FLAG_ONGOING_EVENT;
+			//set custom view to notification
+			RemoteViews contentView = new RemoteViews(getPackageName(), R.layout.notification_layout_upload);
+			contentView.setImageViewResource(R.id.image, R.drawable.icon);
+			contentView.setTextViewText(R.id.text, getString(R.string.upload_in_progress));
+			contentView.setProgressBar(R.id.UploadProgress, (int) dlen, 0, false);
+			mProgressNotification.contentView = contentView;
+			//add notification to manager
+			mNotificationManager.notify(NOTIFICATION_ID, mProgressNotification);
 
 			InputStream inputStream = this.getContentResolver()
 					.openInputStream(uri);
@@ -290,7 +234,7 @@ public class ImgurUpload extends Activity {
 							Log.d(this.getClass().getName(), "Loaded "
 									+ totalRead + " of " + dlen + " bytes ("
 									+ (100 * totalRead) / dlen + "%)");
-							mDialogWait.setProgress(totalRead);
+							contentView.setProgressBar(R.id.UploadProgress, (int) dlen, totalRead, false);
 						}
 						bhout.flush();
 						hrout.flush();
@@ -304,7 +248,7 @@ public class ImgurUpload extends Activity {
 				// final output.
 				bhout.close();
 				Log.d(this.getClass().getName(), "Upload complete...");
-				mDialogWait.setProgress(totalRead);
+				contentView.setProgressBar(R.id.UploadProgress, (int) dlen, totalRead, false);
 			}
 
 			hout.println(boundary);
@@ -392,6 +336,12 @@ public class ImgurUpload extends Activity {
 			Log.e(this.getClass().getName(), "Error parsing error from imgur",
 					e);
 		}
+		return null;
+	}
+
+	@Override
+	public IBinder onBind(Intent arg0) {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

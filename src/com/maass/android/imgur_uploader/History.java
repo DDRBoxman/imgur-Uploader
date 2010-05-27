@@ -1,6 +1,7 @@
 package com.maass.android.imgur_uploader;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -11,6 +12,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,6 +24,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.RadioButton;
 import android.widget.SimpleCursorAdapter;
+import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
 public class History extends Activity{
@@ -30,7 +33,6 @@ public class History extends Activity{
 	private Cursor vCursor;
 	private int pickedItem;
 	private GridView historyGrid;
-	private RadioButton currentRadio;
 	final int CHOOSE_AN_IMAGE_REQUEST = 2910;
 	
 	@Override
@@ -83,7 +85,7 @@ public class History extends Activity{
 		Intent intent = new Intent(); 
 		intent.setType("image/*"); 
 		intent.setAction(Intent.ACTION_PICK);
-		startActivityForResult(Intent.createChooser(intent, "Choose a Viewer"), CHOOSE_AN_IMAGE_REQUEST);
+		startActivityForResult(Intent.createChooser(intent, getString(R.string.choose_a_viewer)) , CHOOSE_AN_IMAGE_REQUEST);
 	}
 	
 	
@@ -97,7 +99,7 @@ public class History extends Activity{
 				//intent.setData(chosenImageUri); 
 				intent.setAction(Intent.ACTION_SEND);
 				intent.putExtra(Intent.EXTRA_STREAM, chosenImageUri);
-				intent.setClass(this, ImgurUpload.class);
+				intent.setClass(this, LaunchUploadDummy.class);
 				startActivity(intent);
 			}
 		}
@@ -143,29 +145,33 @@ public class History extends Activity{
 			//set radio on current thumbnail
 			RadioButton radio = (RadioButton) v.findViewById(R.id.ImageRadio);
 			radio.setChecked(true);
-			currentRadio = radio;
-			
-			Cursor test = (Cursor) parent.getItemAtPosition(position);
+
 			pickedItem = position;
 		}
 	};
 	
 	public void deleteClick(View target) {
 		//ensure that there are images left
-		if (historyGrid.getAdapter().getCount() > 0) {
+		if (historyGrid.getAdapter().getCount() > 0 && pickedItem > -1) {
 			Cursor item = (Cursor) historyGrid.getItemAtPosition(pickedItem);
 			if (item != null) {
-				deleteImage(item.getString(item.getColumnIndex("delete_hash")));
+				//remove check from old image
+				for (int i=0; i<historyGrid.getChildCount(); i++) {
+					((RadioButton) (historyGrid.getChildAt(i).findViewById(R.id.ImageRadio))).setChecked(false);
+				}
+				deleteImage(item.getString(item.getColumnIndex("delete_hash")), item.getString(item.getColumnIndex("local_thumbnail")));
+				pickedItem = -1;
+				refreshImageGrid();
 			}
 		}
 	}
 	
 	public void viewImage(View target) {
 		//ensure that there are images left
-		if (historyGrid.getAdapter().getCount() > 0) {
+		if (historyGrid.getAdapter().getCount() > 0 && pickedItem > -1) {
 			Cursor item = (Cursor) historyGrid.getItemAtPosition(pickedItem);
 			if (item != null) {
-				Intent viewIntent = new Intent("android.intent.action.VIEW", Uri.parse("http://www.imgur.com/" + item.getString(item.getColumnIndex("image_hash")) + ".png"));
+				Intent viewIntent = new Intent("android.intent.action.VIEW", Uri.parse(item.getString(item.getColumnIndex("image_url"))));
 				startActivity(viewIntent);
 			}
 		}
@@ -173,13 +179,12 @@ public class History extends Activity{
 	
 	public void shareImage(View target) {
 		//ensure that there are images left
-		if (historyGrid.getAdapter().getCount() > 0) {
+		if (historyGrid.getAdapter().getCount() > 0 && pickedItem > -1) {
 			Cursor item = (Cursor) historyGrid.getItemAtPosition(pickedItem);
 			if (item != null) {
 				Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
 	
-				shareLinkIntent.putExtra(Intent.EXTRA_TEXT, "http://www.imgur.com/" + item.getString(item.getColumnIndex("image_hash")) + ".png"
-						.toString());
+				shareLinkIntent.putExtra(Intent.EXTRA_TEXT, item.getString(item.getColumnIndex("image_url")));
 				shareLinkIntent.setType("text/plain");
 	
 				History.this.startActivity(Intent.createChooser(
@@ -189,7 +194,7 @@ public class History extends Activity{
 		}
 	}
 	
-	private void deleteImage(String deleteHash) {
+	private void deleteImage(String deleteHash, String localThumbnail) {
 		try {
 			HttpURLConnection conn = (HttpURLConnection) (new URL(
 			"http://imgur.com/api/delete/" + deleteHash + ".json")).openConnection();
@@ -212,11 +217,14 @@ public class History extends Activity{
 			}
 			
 			if (data != null) {
-				if ((data.has("stat") && data.getString("stat") == "ok") || (data.has("error_code") && data.getInt("error_code") == 4002)) {
-					Log.i("",deleteHash);
+				if ((data.has("stat") && data.getString("stat").equals("ok")) || (data.has("error_code") && data.getInt("error_code") == 4002)) {
 					histDB.delete("imgur_history", "delete_hash='" + deleteHash + "'", null);
-					refreshImageGrid();
+					File f = new File(localThumbnail);
+					f.delete();
 				}
+			} else {
+				Toast.makeText(this, getString(R.string.delete_failed) + " " + rData.toString(), Toast.LENGTH_SHORT).show();
+				Log.i("","Delete Failed" + rData.toString());
 			}
 			
 		} catch (Exception e) {
