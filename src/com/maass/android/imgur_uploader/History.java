@@ -26,7 +26,7 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class History extends Activity{
 
-	private SQLiteDatabase histDB;
+	private SQLiteDatabase histDB = null;
 	private Cursor vCursor;
 	private int pickedItem;
 	private GridView historyGrid;
@@ -36,6 +36,8 @@ public class History extends Activity{
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		Log.i("","hi");
 		
 		if (histDB == null) {
 			HistoryDatabase histData = new HistoryDatabase(this);
@@ -126,8 +128,10 @@ public class History extends Activity{
 	}
 	
 	private void refreshImageGrid () {
-		vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
-		((SimpleCursorAdapter)historyGrid.getAdapter()).changeCursor(vCursor);
+		if (historyGrid != null) {
+			vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
+			((SimpleCursorAdapter)historyGrid.getAdapter()).changeCursor(vCursor);
+		}
 	}
 	
 	private OnItemClickListener mMessageClickedHandler = new OnItemClickListener() {
@@ -210,7 +214,7 @@ public class History extends Activity{
 			}
 			
 			if (data != null) {
-				if ((data.has("stat") && data.getString("stat") == "ok") || data.has("error_code") && data.getInt("error_code") == 4002) {
+				if ((data.has("stat") && data.getString("stat") == "ok") || (data.has("error_code") && data.getInt("error_code") == 4002)) {
 					Log.i("",deleteHash);
 					histDB.delete("imgur_history", "delete_hash='" + deleteHash + "'", null);
 					refreshImageGrid();
