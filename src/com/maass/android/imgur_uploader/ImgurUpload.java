@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
@@ -104,15 +105,25 @@ public class ImgurUpload extends Service {
 			//store result in database
 			HistoryDatabase histData = new HistoryDatabase(getBaseContext());
 			SQLiteDatabase data = histData.getWritableDatabase();
-			ContentValues content = new ContentValues();
-			content.put("image_hash", mImgurResponse.get("image_hash"));
-			content.put("delete_hash", mImgurResponse.get("delete_hash"));
-			content.put("image_url", mImgurResponse.get("original_image"));
+			
+			HashMap<String, String> dataToSave = new HashMap<String, String>();
+			dataToSave.put("delete_hash", mImgurResponse.get("delete_hash"));
+			dataToSave.put("image_url", mImgurResponse.get("original"));
 			Uri imageUri = Uri.parse(getFilesDir() + "/" + mImgurResponse.get("image_hash") + "s.png");
-			content.put("local_thumbnail", imageUri.toString());
-			data.insert("imgur_history",null,content);
+			dataToSave.put("local_thumbnail", imageUri.toString());
+			
+			for (Map.Entry<String, String> entry : dataToSave.entrySet()) {
+				ContentValues content = new ContentValues();
+				content.put("hash", mImgurResponse.get("image_hash"));
+				content.put("key", entry.getKey());
+				content.put("value", entry.getValue());
+				data.insert("imgur_history",null,content);
+			}
+			
 			data.close();
 			histData.close();
+			
+			//if the main activity is already open then refresh the gridview
 			
 		}
 		

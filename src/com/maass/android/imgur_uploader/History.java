@@ -44,7 +44,13 @@ public class History extends Activity{
 			histDB = histData.getWritableDatabase();
 		}
 		
-		vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
+		getCursor();
+		
+		Log.i("","" + vCursor.getCount());
+		String[] temp = vCursor.getColumnNames();
+		for (int i=0; i<temp.length; i++) {
+			Log.i("",temp[i]);
+		}
 		
 		if (vCursor.getCount() > 0) {
 			setContentView(R.layout.history);
@@ -56,6 +62,15 @@ public class History extends Activity{
 		} else {
 			setContentView(R.layout.info);
 		}
+	}
+	
+	private void getCursor() {
+		vCursor = histDB.query("imgur_history", new String[] {"hash as image_hash"
+				,"Min(_id) as _id"
+				,"Min(case when key = 'local_thumbnail' then value end) as local_thumbnail"
+				,"Min(case when key = 'image_url' then value end) as image_url"
+				,"Min(case when key = 'delete_hash' then value end) as delete_hash"}
+				, null, null, "hash", null, null);
 	}
 	
 	//setup menu
@@ -127,9 +142,9 @@ public class History extends Activity{
 		histDB = null;
 	}
 	
-	private void refreshImageGrid () {
+	public void refreshImageGrid () {
 		if (historyGrid != null) {
-			vCursor = histDB.query("imgur_history", null, null, null, null, null, null);
+			getCursor();
 			((SimpleCursorAdapter)historyGrid.getAdapter()).changeCursor(vCursor);
 		}
 	}
@@ -159,7 +174,7 @@ public class History extends Activity{
 				for (int i=0; i<historyGrid.getChildCount(); i++) {
 					((RadioButton) (historyGrid.getChildAt(i).findViewById(R.id.ImageRadio))).setChecked(false);
 				}
-				deleteImage(item.getString(item.getColumnIndex("delete_hash")), item.getString(item.getColumnIndex("local_thumbnail")));
+				deleteImage(item.getString(item.getColumnIndex("delete_hash")), item.getString(item.getColumnIndex("image_hash")) ,item.getString(item.getColumnIndex("local_thumbnail")));
 				pickedItem = -1;
 				refreshImageGrid();
 			}
@@ -194,7 +209,7 @@ public class History extends Activity{
 		}
 	}
 	
-	private void deleteImage(String deleteHash, String localThumbnail) {
+	private void deleteImage(String deleteHash, String imageHash, String localThumbnail) {
 		try {
 			HttpURLConnection conn = (HttpURLConnection) (new URL(
 			"http://imgur.com/api/delete/" + deleteHash + ".json")).openConnection();
@@ -218,7 +233,7 @@ public class History extends Activity{
 			
 			if (data != null) {
 				if ((data.has("stat") && data.getString("stat").equals("ok")) || (data.has("error_code") && data.getInt("error_code") == 4002)) {
-					histDB.delete("imgur_history", "delete_hash='" + deleteHash + "'", null);
+					histDB.delete("imgur_history", "hash='" + imageHash + "'", null);
 					File f = new File(localThumbnail);
 					f.delete();
 				}
