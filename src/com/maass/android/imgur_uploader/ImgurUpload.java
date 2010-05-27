@@ -342,21 +342,11 @@ public class ImgurUpload extends Activity {
 		Bitmap bitmapOrg;
 		try {
 			bitmapOrg = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
-		int width = bitmapOrg.getWidth();
-        int height = bitmapOrg.getHeight();
-        int newWidth = 200;
-        int newHeight = 200;
-        float scaleWidth = ((float) newWidth) / width;
-        float scaleHeight = ((float) newHeight) / height;
-        Matrix matrix = new Matrix();
-        matrix.postScale(scaleWidth, scaleHeight);
-        
-        Bitmap resizedBitmap = Bitmap.createBitmap(bitmapOrg, 0, 0,
-                width, height, matrix, true);
-        
-        FileOutputStream f = openFileOutput(mImgurResponse.get("image_hash") + "s.png", Context.MODE_PRIVATE);
-
-        resizedBitmap.compress(Bitmap.CompressFormat.PNG, 90, f);
+			Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmapOrg, 200, 200, false);
+	        
+	        FileOutputStream f = openFileOutput(mImgurResponse.get("image_hash") + "s.png", Context.MODE_PRIVATE);
+	
+	        resizedBitmap.compress(Bitmap.CompressFormat.PNG, 90, f);
         
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
