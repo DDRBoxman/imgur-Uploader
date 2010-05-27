@@ -37,8 +37,6 @@ public class History extends Activity{
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		Log.i("","hi");
-		
 		if (histDB == null) {
 			HistoryDatabase histData = new HistoryDatabase(this);
 			histDB = histData.getWritableDatabase();
