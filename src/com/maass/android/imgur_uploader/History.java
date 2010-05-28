@@ -21,6 +21,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Toast;
@@ -222,9 +223,34 @@ public class History extends Activity {
             historyGrid = (GridView) findViewById(R.id.HistoryGridView);
             historyGrid.setAdapter(entry);
             historyGrid.setOnItemClickListener(mMessageClickedHandler);
+
+            {
+                ((ImageButton) findViewById(R.id.ImageButtonShare))
+                    .setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(final View arg0) {
+                            shareImage(arg0);
+                        }
+                    });
+                ((ImageButton) findViewById(R.id.ImageButtonDelete))
+                    .setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(final View arg0) {
+                            deleteClick(arg0);
+                        }
+                    });
+                ((ImageButton) findViewById(R.id.ImageButtonLaunchBrowser))
+                    .setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(final View arg0) {
+                            viewImage(arg0);
+                        }
+                    });
+            }
         } else {
             setContentView(R.layout.info);
         }
+
     }
 
     /**
