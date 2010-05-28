@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <resources>
-    <string name="help_info">Thank you for installing this app. This is the history screen, it will be blank untill you upload an Image. There are two way to upload an image, either by pressing menu while in the application or by finding an image in another app (e.g. Gallery or Astro) and choose &quot;Share&quot; in the menu. There should be an imgur item in the list. For more information try this page: http://wiki.github.com/phrack/imgur-Uploader/quick-usage-guide</string>
+    <string name="help_info">Thank you for installing this app. This is the history screen, it will be blank untill you upload an Image. There are two ways to upload an image, either by pressing menu while in the application or by finding an image in another app (e.g. Gallery or Astro) and choosing &quot;Share&quot; in the menu. There should be an imgur item in the list. For more information try this page: http://wiki.github.com/phrack/imgur-Uploader/quick-usage-guide</string>
     <string name="app_name">imgur</string>
     <string name="url">URL: </string>
     <string name="delete">Delete: </string>

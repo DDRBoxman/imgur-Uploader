@@ -250,7 +250,6 @@ public class History extends Activity {
         } else {
             setContentView(R.layout.info);
         }
-
     }
 
     /**
