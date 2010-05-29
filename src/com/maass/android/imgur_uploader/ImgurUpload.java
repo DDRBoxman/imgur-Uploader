@@ -184,6 +184,7 @@ public class ImgurUpload extends Service {
         Log.d(this.getClass().getName(), intent.toString());
         final Bundle extras = intent.getExtras();
         try {
+            //upload a new image
             if (Intent.ACTION_SEND.equals(intent.getAction())
                 && (extras != null) && extras.containsKey(Intent.EXTRA_STREAM)) {
 

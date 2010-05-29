@@ -17,6 +17,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -84,7 +85,11 @@ public class History extends Activity {
             }
             if (n > 0) {
                 c.moveToFirst();
-                return c.getString(c.getColumnIndex("value"));
+                final String returnString = c.getString(c
+                    .getColumnIndex("value"));
+                //make sure we close the cursor
+                c.close();
+                return returnString;
             }
         } catch (final Exception e) {
             Log.e(this.getClass().getName(), " error while getting " + col
@@ -108,60 +113,86 @@ public class History extends Activity {
                 deleteImage(dbGetString(hash, "delete_hash"), hash,
                     dbGetString(hash, "local_thumbnail"));
                 pickedItem = -1;
-                refreshImageGrid();
             }
         }
     }
 
     private void deleteImage(final String deleteHash, final String imageHash,
         final String localThumbnail) {
-        try {
-            final HttpURLConnection conn = (HttpURLConnection) (new URL(
-                "http://imgur.com/api/delete/" + deleteHash + ".json"))
-                .openConnection();
-            final BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream()));
-            final StringBuilder rData = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                rData.append(line).append('\n');
-            }
 
-            final JSONObject json = new JSONObject(rData.toString());
-            JSONObject data;
-            if (json.has("rsp")) {
-                data = json.getJSONObject("rsp");
-            } else if (json.has("error")) {
-                data = json.getJSONObject("error");
-            } else {
-                data = null;
-            }
+        final Handler mHandler = new Handler();
 
-            if (data != null) {
-                if ((data.has("stat") && data.getString("stat").equals("ok"))
-                    || (data.has("error_code") && (data.getInt("error_code") == 4002))) {
-                    histDB.delete("imgur_history", "hash='" + imageHash + "'",
-                        null);
-                    try {
-                        final File f = new File(localThumbnail);
-                        f.delete();
-                    } catch (final NullPointerException e) {
+        //load worker to stop hangs
+        final Thread loadWorker = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    final HttpURLConnection conn = (HttpURLConnection) (new URL(
+                        "http://imgur.com/api/delete/" + deleteHash + ".json"))
+                        .openConnection();
+                    final BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
+                    final StringBuilder rData = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        rData.append(line).append('\n');
                     }
-                }
-            } else {
-                Toast.makeText(this,
-                    getString(R.string.delete_failed) + " " + rData.toString(),
-                    Toast.LENGTH_SHORT).show();
-                Log.i(this.getClass().getName(), "Delete Failed "
-                    + rData.toString());
-            }
 
-        } catch (final Exception e) {
-            Log.e(this.getClass().getName(), "Delete failed", e);
-            Toast.makeText(this,
-                getString(R.string.delete_failed) + " " + e.toString(),
-                Toast.LENGTH_SHORT).show();
-        }
+                    final JSONObject json = new JSONObject(rData.toString());
+                    JSONObject data;
+                    if (json.has("rsp")) {
+                        data = json.getJSONObject("rsp");
+                    } else if (json.has("error")) {
+                        data = json.getJSONObject("error");
+                    } else {
+                        data = null;
+                    }
+
+                    if (data != null) {
+                        if ((data.has("stat") && data.getString("stat").equals(
+                            "ok"))
+                            || (data.has("error_code") && (data
+                                .getInt("error_code") == 4002))) {
+                            histDB.delete("imgur_history", "hash='" + imageHash
+                                + "'", null);
+                            try {
+                                final File f = new File(localThumbnail);
+                                f.delete();
+                            } catch (final NullPointerException e) {
+                            }
+                            //send broadcast to update the grid now that the database has changed
+                            sendBroadcast(new Intent(
+                                ImgurUpload.BROADCAST_ACTION));
+                        }
+                    } else {
+                        mHandler.post(new Runnable() {
+                            public void run() {
+                                Toast.makeText(
+                                    History.this,
+                                    getString(R.string.delete_failed) + " "
+                                        + rData.toString(), Toast.LENGTH_SHORT)
+                                    .show();
+                            }
+                        });
+                        Log.i(this.getClass().getName(), "Delete Failed "
+                            + rData.toString());
+                    }
+
+                } catch (final Exception e) {
+                    mHandler.post(new Runnable() {
+                        public void run() {
+                            Toast.makeText(
+                                History.this,
+                                getString(R.string.delete_failed) + " "
+                                    + e.toString(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    Log.e(this.getClass().getName(), "Delete failed", e);
+                }
+            }
+        };
+
+        loadWorker.start();
     }
 
     /** 
