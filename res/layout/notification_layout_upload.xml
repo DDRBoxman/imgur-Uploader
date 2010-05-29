@@ -26,7 +26,7 @@
     		android:layout_height="wrap_content"
     		style="?android:attr/progressBarStyleHorizontal"
     		android:id="@+id/UploadProgress"
-    		android:layout_below="@+id/text" android:layout_width="fill_parent"/>
+    		android:layout_below="@+id/text" android:layout_width="fill_parent" android:indeterminate="false"/>
     </LinearLayout>
 	
 

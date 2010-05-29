@@ -9,7 +9,10 @@ import java.net.URL;
 import org.json.JSONObject;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -193,8 +196,8 @@ public class History extends Activity {
                 // intent.setData(chosenImageUri);
                 intent.setAction(Intent.ACTION_SEND);
                 intent.putExtra(Intent.EXTRA_STREAM, chosenImageUri);
-                intent.setClass(this, LaunchUploadDummy.class);
-                startActivity(intent);
+                intent.setClass(this, ImgurUpload.class);
+                startService(intent);
             }
         }
     }
@@ -294,7 +297,19 @@ public class History extends Activity {
             final HistoryDatabase histData = new HistoryDatabase(this);
             histDB = histData.getWritableDatabase();
         }
+
+        //get updates about new images that have been uploaded
+        registerReceiver(receiver, new IntentFilter(
+            ImgurUpload.BROADCAST_ACTION));
+
         refreshImageGrid();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        unregisterReceiver(receiver);
     }
 
     @Override
@@ -369,4 +384,13 @@ public class History extends Activity {
             }
         }
     }
+
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(final Context context, final Intent intent) {
+            if (intent.getAction().equals(ImgurUpload.BROADCAST_ACTION)) {
+                refreshImageGrid();
+            }
+        }
+    };
 }

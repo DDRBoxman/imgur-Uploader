@@ -45,6 +45,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -58,12 +59,15 @@ public class ImgurUpload extends Service {
     private static final String API_KEY = "e67bb2d5ceb42e43f8f7fc38e7ca7376";
     private static final int THUMBNAIL_MAX_SIZE = 200;
 
+    public static final String BROADCAST_ACTION = "com.maass.android.imgur_uploader.ImageUploadedEvent";
     private Notification mProgressNotification;
     private static final int NOTIFICATION_ID = 42;
     private NotificationManager mNotificationManager;
 
     private Map<String, String> mImgurResponse;
     private Uri imageLocation;
+
+    private Handler mHandler = new Handler();
 
     @Override
     public void onStart(final Intent intent, final int startId) {
@@ -88,8 +92,19 @@ public class ImgurUpload extends Service {
     private void passIntent(final Intent intent) {
         try {
             Log.i(this.getClass().getName(), "in passIntent(Intent)");
-            mImgurResponse = handleSendIntent(intent);
-            handleResponse();
+
+            //Start a thread so that android can continue to do things,
+            //services are not a separate thread and will make an application hang
+            final Thread loadWorker = new Thread() {
+                @Override
+                public void run() {
+                    mImgurResponse = handleSendIntent(intent);
+                    handleResponse();
+                }
+            };
+
+            loadWorker.start();
+
         } finally {
             stopSelf();
         }
@@ -138,7 +153,7 @@ public class ImgurUpload extends Service {
             histData.close();
 
             // if the main activity is already open then refresh the gridview
-
+            sendBroadcast(new Intent(BROADCAST_ACTION));
         }
 
         // notification with result
@@ -189,6 +204,21 @@ public class ImgurUpload extends Service {
     }
 
     /**
+     * Method to generate the remote view for the progress notification
+     * 
+     * 
+     */
+    private RemoteViews generateProgressNotificationView(final int progress,
+        final int total) {
+        final RemoteViews contentView = new RemoteViews(getPackageName(),
+            R.layout.notification_layout_upload);
+        contentView.setProgressBar(R.id.UploadProgress, total, progress, false);
+        contentView.setTextViewText(R.id.text, "Uploaded " + progress + " of "
+            + total + " bytes");
+        return contentView;
+    }
+
+    /**
      * This method uploads an image from the given uri. It does the uploading in
      * small chunks to make sure it doesn't over run the memory.
      * 
@@ -211,14 +241,8 @@ public class ImgurUpload extends Service {
             // set as ongoing
             mProgressNotification.flags |= Notification.FLAG_ONGOING_EVENT;
             // set custom view to notification
-            final RemoteViews contentView = new RemoteViews(getPackageName(),
-                R.layout.notification_layout_upload);
-            contentView.setImageViewResource(R.id.image, R.drawable.icon);
-            contentView.setTextViewText(R.id.text,
-                getString(R.string.upload_in_progress));
-            contentView.setProgressBar(R.id.UploadProgress, totalFileLength, 0,
-                true);
-            mProgressNotification.contentView = contentView;
+            mProgressNotification.contentView = generateProgressNotificationView(
+                0, totalFileLength);
             //empty intent for the notification
             final Intent progressIntent = new Intent();
             final PendingIntent contentIntent = PendingIntent.getActivity(this,
@@ -272,11 +296,17 @@ public class ImgurUpload extends Service {
                                 + totalRead + " of " + totalFileLength
                                 + " bytes (" + (100 * totalRead)
                                 / totalFileLength + "%)");
-                            contentView.setProgressBar(R.id.UploadProgress,
-                                totalFileLength, totalRead, false);
-                            contentView.setTextViewText(R.id.text, "Uploaded "
-                                + totalRead + " of " + totalFileLength
-                                + " bytes");
+
+                            //make a final version of the total read to make the handler happy
+                            final int totalReadFinal = totalRead;
+                            mHandler.post(new Runnable() {
+                                public void run() {
+                                    mProgressNotification.contentView = generateProgressNotificationView(
+                                        totalReadFinal, totalFileLength);
+                                    mNotificationManager.notify(
+                                        NOTIFICATION_ID, mProgressNotification);
+                                }
+                            });
                         }
                         bhout.flush();
                         hrout.flush();
@@ -290,8 +320,8 @@ public class ImgurUpload extends Service {
                 // final output.
                 bhout.close();
                 Log.d(this.getClass().getName(), "Upload complete...");
-                contentView.setProgressBar(R.id.UploadProgress,
-                    totalFileLength, totalRead, false);
+                mProgressNotification.contentView.setProgressBar(
+                    R.id.UploadProgress, totalFileLength, totalRead, false);
             }
 
             hout.println(boundary);
