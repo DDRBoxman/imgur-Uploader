@@ -21,4 +21,6 @@
 <string name="upload_in_progress">Upload In Progress</string>
 <string name="settings">Settings</string>
 <string name="clipboard_success">Copied To Clipboard</string>
+<string name="local_delete">Local</string>
+<string name="remote_delete">Remote + Local</string>
 </resources>

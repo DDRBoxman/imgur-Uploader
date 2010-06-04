@@ -18,7 +18,6 @@ import android.text.ClipboardManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,25 +33,19 @@ public class ImageDetails extends Activity {
         setContentView(R.layout.image_details);
 
         //add actions for button clicks
-        ((ImageButton) findViewById(R.id.ImageButtonShare))
+        ((Button) findViewById(R.id.LocalDelete))
             .setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(final View arg0) {
-                    shareImage(arg0);
+                    deleteClick(0);
                 }
             });
-        ((ImageButton) findViewById(R.id.ImageButtonDelete))
+
+        ((Button) findViewById(R.id.RemoteDelete))
             .setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(final View arg0) {
-                    deleteClick(arg0);
-                }
-            });
-        ((ImageButton) findViewById(R.id.ImageButtonLaunchBrowser))
-            .setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View arg0) {
-                    viewImage(arg0);
+                    deleteClick(1);
                 }
             });
 
@@ -68,6 +61,22 @@ public class ImageDetails extends Activity {
                 }
             });
 
+        ((Button) findViewById(R.id.shareURL))
+            .setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View arg0) {
+                    final Intent shareLinkIntent = new Intent(
+                        Intent.ACTION_SEND);
+
+                    shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mImageUrl);
+                    shareLinkIntent.setType("text/plain");
+
+                    ImageDetails.this.startActivity(Intent.createChooser(
+                        shareLinkIntent, getResources().getString(
+                            R.string.share_via)));
+                }
+            });
+
         ((Button) findViewById(R.id.copyDelete))
             .setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -78,6 +87,23 @@ public class ImageDetails extends Activity {
                     Toast.makeText(ImageDetails.this,
                         getString(R.string.clipboard_success),
                         Toast.LENGTH_SHORT).show();
+                }
+            });
+
+        ((Button) findViewById(R.id.shareDelete))
+            .setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View arg0) {
+                    final Intent shareLinkIntent = new Intent(
+                        Intent.ACTION_SEND);
+
+                    shareLinkIntent.putExtra(Intent.EXTRA_TEXT,
+                        "http://imgur.com/delete/" + mImageDeleteHash);
+                    shareLinkIntent.setType("text/plain");
+
+                    ImageDetails.this.startActivity(Intent.createChooser(
+                        shareLinkIntent, getResources().getString(
+                            R.string.share_via)));
                 }
             });
 
@@ -96,12 +122,18 @@ public class ImageDetails extends Activity {
             .setText("http://imgur.com/delete/" + mImageDeleteHash);
     }
 
-    public void deleteClick(final View target) {
-        deleteImage(mImageDeleteHash, mImageHash, mImageLocalThumbnail);
+    /*
+     * 0 for local delete only
+     * 1 for local and remote delete
+     */
+    public void deleteClick(final int deleteType) {
+        deleteImage(mImageDeleteHash, mImageHash, mImageLocalThumbnail,
+            deleteType);
     }
 
+    //TODO: Move this into the imgur service
     private void deleteImage(final String deleteHash, final String imageHash,
-        final String localThumbnail) {
+        final String localThumbnail, final int deleteType) {
 
         final Handler mHandler = new Handler();
 
@@ -110,27 +142,35 @@ public class ImageDetails extends Activity {
             @Override
             public void run() {
                 try {
-                    final HttpURLConnection conn = (HttpURLConnection) (new URL(
-                        "http://imgur.com/api/delete/" + deleteHash + ".json"))
-                        .openConnection();
-                    final BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream()));
+
+                    final JSONObject data;
                     final StringBuilder rData = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        rData.append(line).append('\n');
-                    }
 
-                    final JSONObject json = new JSONObject(rData.toString());
-                    JSONObject data;
-                    if (json.has("rsp")) {
-                        data = json.getJSONObject("rsp");
-                    } else if (json.has("error")) {
-                        data = json.getJSONObject("error");
+                    if (deleteType == 1) {
+                        final HttpURLConnection conn = (HttpURLConnection) (new URL(
+                            "http://imgur.com/api/delete/" + deleteHash
+                                + ".json")).openConnection();
+                        final BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream()));
+
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            rData.append(line).append('\n');
+                        }
+
+                        final JSONObject json = new JSONObject(rData.toString());
+
+                        if (json.has("rsp")) {
+                            data = json.getJSONObject("rsp");
+                        } else if (json.has("error")) {
+                            data = json.getJSONObject("error");
+                        } else {
+                            data = null;
+                        }
                     } else {
-                        data = null;
+                        final JSONObject json = new JSONObject();
+                        data = json.put("stat", "ok");
                     }
-
                     if (data != null) {
                         if ((data.has("stat") && data.getString("stat").equals(
                             "ok"))
@@ -183,27 +223,5 @@ public class ImageDetails extends Activity {
         };
 
         loadWorker.start();
-    }
-
-    /**
-     * This is the callback from the UI share button
-     */
-    public void shareImage(final View target) {
-        final Intent shareLinkIntent = new Intent(Intent.ACTION_SEND);
-
-        shareLinkIntent.putExtra(Intent.EXTRA_TEXT, mImageUrl);
-        shareLinkIntent.setType("text/plain");
-
-        ImageDetails.this.startActivity(Intent.createChooser(shareLinkIntent,
-            getResources().getString(R.string.share_via)));
-    }
-
-    /**
-     * This is the call back from the browser launch button
-     */
-    public void viewImage(final View target) {
-        final Intent viewIntent = new Intent("android.intent.action.VIEW", Uri
-            .parse(mImageUrl));
-        startActivity(viewIntent);
     }
 }
