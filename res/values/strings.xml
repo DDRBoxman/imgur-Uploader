@@ -23,4 +23,9 @@
 <string name="clipboard_success">Copied To Clipboard</string>
 <string name="local_delete">Local</string>
 <string name="remote_delete">Remote + Local</string>
+<string name="clean_max_images">Delete after max reached</string>
+
+<string name="clean_max_images_number">Max Images</string>
+<string name="clean_old_images">Delete if older than</string>
+<string name="clean_old_images_date">Older than # days</string>
 </resources>

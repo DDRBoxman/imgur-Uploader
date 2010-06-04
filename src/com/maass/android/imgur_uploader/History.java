@@ -171,6 +171,9 @@ public class History extends Activity {
         menu.findItem(R.id.AboutMenu).setIntent(
             new Intent(this, LaunchedInfo.class));
 
+        menu.findItem(R.id.SettingsMenu).setIntent(
+            new Intent(this, ImgurPreferences.class));
+
         return true;
     }
 

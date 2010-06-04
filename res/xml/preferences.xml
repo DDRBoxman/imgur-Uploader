@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android">
+<CheckBoxPreference android:title="@string/clean_max_images"></CheckBoxPreference>
+
+<Preference android:title="@string/clean_max_images_number"></Preference>
+<CheckBoxPreference android:title="@string/clean_old_images"></CheckBoxPreference>
+<Preference android:title="@string/clean_old_images_date"></Preference>
+</PreferenceScreen>
