@@ -182,6 +182,7 @@ public class ImageDetails extends Activity {
                                 .getWritableDatabase();
                             histDB.delete("imgur_history", "hash='" + imageHash
                                 + "'", null);
+                            histDB.close();
                             try {
                                 final File f = new File(localThumbnail);
                                 f.delete();
