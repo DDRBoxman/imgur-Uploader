@@ -1,7 +1,12 @@
 package com.maass.android.imgur_uploader;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.ListIterator;
+
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.preference.PreferenceManager;
@@ -34,18 +39,96 @@ public class HistoryDatabase extends SQLiteOpenHelper {
         final SharedPreferences prefs = PreferenceManager
             .getDefaultSharedPreferences(context);
 
-        //delete if too many images
-        if (prefs.getBoolean("clean_max_images", false)) {
-            final int maxImages = prefs.getInt("clean_max_images_number", -1);
-            //            db.query("imgur_history", new String[] { "_idx" }, null, null,
-            //                null, null, "_idx");
-        }
-
         //delete if image is too old
         if (prefs.getBoolean("clean_old_images", false)) {
-            final int maxAge = prefs.getInt("clean_old_images_date", -1);
+            final String maxAgeStr = prefs.getString("clean_old_images_date",
+                "-1");
+            Long maxAge = Long.parseLong(maxAgeStr);
+            //put in miliseconds
+            maxAge = maxAge * 86400000;
+            if (maxAge > 0) {
+
+                //stores hashes of images to remove
+                final ArrayList<String> hashToDelete = new ArrayList<String>();
+
+                final Cursor result = db.query("imgur_history", new String[] {
+                    "hash", "value" }, "key = 'upload_time'", null, null, null,
+                    null);
+
+                if (result.getCount() > 0) {
+
+                    result.moveToFirst();
+                    do {
+                        final Long savedTime = Long.parseLong(result
+                            .getString(result.getColumnIndex("value")));
+                        if (System.currentTimeMillis() - savedTime > maxAge) {
+                            hashToDelete.add(result.getString(result
+                                .getColumnIndex("hash")));
+                        }
+                    } while (result.moveToNext());
+
+                    deleteImages(hashToDelete, db);
+                }
+
+                result.close();
+            }
         }
 
+        //delete if too many images
+        if (prefs.getBoolean("clean_max_images", false)) {
+            final String maxImagesStr = prefs.getString(
+                "clean_max_images_number", "-1");
+            final int maxImages = Integer.parseInt(maxImagesStr);
+            if (maxImages > 0) {
+
+                //stores hashes of images to remove
+                final ArrayList<String> hashToDelete = new ArrayList<String>();
+
+                final Cursor result = db.rawQuery(
+                    "SELECT ltb.hash as _id, ltb.hash as hash, "
+                        + "ltb.value as local_thumbnail "
+                        + "FROM imgur_history as ltb, imgur_history as tu "
+                        + "WHERE tu.hash = ltb.hash "
+                        + "AND ltb.key = 'local_thumbnail' "
+                        + "AND tu.key='upload_time' "
+                        + "ORDER BY tu.value DESC", null);
+                if (result.getCount() > maxImages) {
+                    result.moveToPosition(maxImages);
+                    do {
+                        hashToDelete.add(result.getString(result
+                            .getColumnIndex("hash")));
+                    } while (result.moveToNext());
+
+                    deleteImages(hashToDelete, db);
+                }
+
+                result.close();
+            }
+        }
+
+        super.onOpen(db);
+    }
+
+    private void deleteImages(final ArrayList<String> imageHashToDelete,
+        final SQLiteDatabase db) {
+        //delete images
+        final ListIterator<String> litr = imageHashToDelete.listIterator();
+        while (litr.hasNext()) {
+            final String hash = litr.next();
+            final Cursor thumbnail = db.query("imgur_history",
+                new String[] { "value" }, "hash = '" + hash
+                    + "' AND key = 'local_thumbnail'", null, null, null, null);
+            thumbnail.moveToFirst();
+            final String thumbnailFile = thumbnail.getString(thumbnail
+                .getColumnIndex("value"));
+            try {
+                final File f = new File(thumbnailFile);
+                f.delete();
+            } catch (final NullPointerException e) {
+            }
+            db.delete("imgur_history", "hash = '" + hash + "'", null);
+            Log.i("imgur - delete", hash);
+        }
     }
 
     @Override

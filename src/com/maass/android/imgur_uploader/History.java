@@ -212,18 +212,18 @@ public class History extends Activity {
     @Override
     public void onPause() {
         super.onPause();
-
+        // close cursor
+        vCursor.close();
+        // close database
+        histDB.close();
+        histDB = null;
         unregisterReceiver(receiver);
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        // close cursor
-        vCursor.close();
-        // close database
-        histDB.close();
-        histDB = null;
+
     }
 
     /**
