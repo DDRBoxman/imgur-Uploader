@@ -131,6 +131,28 @@ public class History extends Activity {
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        //see if we need to pass a call to upload to the upload service
+        final Intent intent = getIntent();
+        final Bundle extras = intent.getExtras();
+
+        //upload a new image
+        if (Intent.ACTION_SEND.equals(intent.getAction()) && (extras != null)
+            && extras.containsKey(Intent.EXTRA_STREAM)) {
+
+            final Uri uri = (Uri) extras.getParcelable(Intent.EXTRA_STREAM);
+            if (uri != null) {
+                final Intent passIntent = new Intent();
+                // intent.setData(chosenImageUri);
+                passIntent.setAction(Intent.ACTION_SEND);
+                passIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                passIntent.setClass(this, ImgurUpload.class);
+                startService(passIntent);
+                finish();
+                return;
+            }
+        }
+
+        //continue normally :D
         if (histDB == null) {
             final HistoryDatabase histData = new HistoryDatabase(this);
             histDB = histData.getWritableDatabase();
