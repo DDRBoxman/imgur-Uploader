@@ -1,62 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent" android:gravity="center">
-  
-	<ImageView
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:id="@+id/ImageDetailsImage"
-		android:src="@android:drawable/ic_menu_gallery"
-		android:minHeight="200px"
-		android:minWidth="200px"
-		android:scaleType="center" />
-		
+
+<ScrollView
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/ScrollView01"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content">
+	
 	<LinearLayout
-		android:layout_height="wrap_content"
-		android:orientation="vertical"
-		android:layout_width="fill_parent"
-		android:gravity="center">
-		
-		<LinearLayout
+	  android:orientation="vertical"
+	  android:layout_width="fill_parent"
+	  android:layout_height="fill_parent"
+	  android:gravity="center">
+	  
+		<ImageView
 			android:layout_width="wrap_content"
-			android:layout_height="wrap_content">
+			android:layout_height="wrap_content"
+			android:id="@+id/ImageDetailsImage"
+			android:src="@android:drawable/ic_menu_gallery"
+			android:minHeight="200px"
+			android:minWidth="200px"
+			android:scaleType="center" />
 			
+		<LinearLayout
+			android:layout_height="wrap_content"
+			android:orientation="vertical"
+			android:layout_width="fill_parent"
+			android:gravity="center">
 			
-		<Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/LocalDelete" android:text="@string/local_delete"></Button><ImageView android:id="@+id/ImageDeleteIcon" android:layout_height="wrap_content" android:layout_width="wrap_content" android:src="@android:drawable/ic_menu_delete" /><Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/RemoteDelete" android:text="@string/remote_delete"></Button>
-
-</LinearLayout>
+			<LinearLayout
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content">
+				
+				
+			<Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/LocalDelete" android:text="@string/local_delete"></Button><ImageView android:id="@+id/ImageDeleteIcon" android:layout_height="wrap_content" android:layout_width="wrap_content" android:src="@android:drawable/ic_menu_delete" /><Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/RemoteDelete" android:text="@string/remote_delete"></Button>
+	
+	</LinearLayout>
+			
+			<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+	
+			<TextView android:text="@+string/url" android:id="@+id/tvURL" android:layout_height="fill_parent" android:layout_width="wrap_content"></TextView>
+			<TextView android:id="@+id/url" android:layout_height="fill_parent" android:autoLink="web" android:layout_width="wrap_content" android:layout_weight="1" android:textStyle="bold" android:textSize="28sp"></TextView>
+		</LinearLayout><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+	
+			<Button android:text="@+string/copy" android:id="@+id/copyURL" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
+			<Button android:text="@+string/share" android:id="@+id/shareURL" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
+	
+		</LinearLayout><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
 		
-		<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+			<TextView android:text="@+string/delete" android:id="@+id/tvDelete" android:layout_height="fill_parent" android:layout_width="wrap_content"></TextView>
+			<TextView android:id="@+id/delete" android:layout_height="fill_parent" android:autoLink="web" android:layout_weight="1" android:layout_width="wrap_content">></TextView>
+		</LinearLayout><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+	
+			<Button android:text="@+string/copy" android:id="@+id/copyDelete" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
+	
+			<Button android:text="@+string/share" android:id="@+id/shareDelete" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
+		</LinearLayout></LinearLayout>
 
-		<TextView android:text="@+string/url" android:id="@+id/tvURL" android:layout_height="fill_parent" android:layout_width="wrap_content"></TextView>
-		<TextView android:id="@+id/url" android:layout_height="fill_parent" android:autoLink="web" android:layout_width="wrap_content" android:layout_weight="1" android:textStyle="bold" android:textSize="28sp"></TextView>
-	</LinearLayout><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+	</LinearLayout>
 
-		<Button android:text="@+string/copy" android:id="@+id/copyURL" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
-		<Button android:text="@+string/share" android:id="@+id/shareURL" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
-
-	</LinearLayout><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
-	
-		<TextView android:text="@+string/delete" android:id="@+id/tvDelete" android:layout_height="fill_parent" android:layout_width="wrap_content"></TextView>
-		<TextView android:id="@+id/delete" android:layout_height="fill_parent" android:autoLink="web" android:layout_weight="1" android:layout_width="wrap_content">></TextView>
-	</LinearLayout><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
-
-		<Button android:text="@+string/copy" android:id="@+id/copyDelete" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
-
-		<Button android:text="@+string/share" android:id="@+id/shareDelete" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1"></Button>
-	</LinearLayout></LinearLayout>
-	
-	
-	
-	
-	
-	
-	
-	
-
-	
-
-
-
-</LinearLayout>
+</ScrollView>
