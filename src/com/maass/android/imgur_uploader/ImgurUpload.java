@@ -117,6 +117,10 @@ public class ImgurUpload extends Service {
 
         String notificationMessage = getString(R.string.upload_success);
 
+        // notification intent with result
+        final Intent notificationIntent = new Intent(getBaseContext(),
+            ImageDetails.class);
+
         if (mImgurResponse == null) {
             notificationMessage = getString(R.string.connection_failed);
         } else if (mImgurResponse.get("error") != null) {
@@ -149,6 +153,15 @@ public class ImgurUpload extends Service {
                 data.insert("imgur_history", null, content);
             }
 
+            //set intent to go to image details
+            notificationIntent.putExtra("hash", mImgurResponse
+                .get("image_hash"));
+            notificationIntent.putExtra("image_url", mImgurResponse
+                .get("original"));
+            notificationIntent.putExtra("delete_hash", mImgurResponse
+                .get("delete_hash"));
+            notificationIntent.putExtra("local_thumbnail", imageUri.toString());
+
             data.close();
             histData.close();
 
@@ -156,13 +169,12 @@ public class ImgurUpload extends Service {
             sendBroadcast(new Intent(BROADCAST_ACTION));
         }
 
-        // notification with result
-        final Intent mtActivity = new Intent(this, History.class);
+        //assemble notification
         final Notification notification = new Notification(R.drawable.icon,
             notificationMessage, System.currentTimeMillis());
         notification.setLatestEventInfo(this, getString(R.string.app_name),
             notificationMessage, PendingIntent.getActivity(getBaseContext(), 0,
-                mtActivity, PendingIntent.FLAG_CANCEL_CURRENT));
+                notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT));
         notification.flags |= Notification.FLAG_AUTO_CANCEL;
         mNotificationManager.notify(NOTIFICATION_ID, notification);
 
