@@ -42,17 +42,22 @@ public class History extends Activity {
                 .getItemAtPosition(position);
 
             //start ImageDetails activity passing info about the image
-            final Intent intent = new Intent(getBaseContext(),
-                ImageDetails.class);
             final String hash = item.getString(item.getColumnIndex("hash"));
-            intent.putExtra("hash", hash);
-            intent.putExtra("image_url", dbGetString(hash, "image_url"));
-            intent.putExtra("delete_hash", dbGetString(hash, "delete_hash"));
-            intent.putExtra("local_thumbnail", dbGetString(hash,
-                "local_thumbnail"));
+            final Intent intent = generateImageDetailsEvent(hash);
             startActivity(intent);
         }
     };
+
+    private Intent generateImageDetailsEvent(final String hash) {
+        //start ImageDetails activity passing info about the image
+        final Intent intent = new Intent(getBaseContext(), ImageDetails.class);
+        intent.putExtra("hash", hash);
+        intent.putExtra("image_url", dbGetString(hash, "image_url"));
+        intent.putExtra("delete_hash", dbGetString(hash, "delete_hash"));
+        intent
+            .putExtra("local_thumbnail", dbGetString(hash, "local_thumbnail"));
+        return intent;
+    }
 
     /** 
      * This method does a self joining query that locates the thumbnail and 
@@ -277,6 +282,14 @@ public class History extends Activity {
         public void onReceive(final Context context, final Intent intent) {
             if (intent.getAction().equals(ImgurUpload.BROADCAST_ACTION)) {
                 refreshImageGrid();
+
+                if (intent.hasExtra("hash")) {
+                    final String hash = intent.getStringExtra("hash");
+                    //if we are still here and an image has been uploaded show its details :D
+                    final Intent detailIntent = generateImageDetailsEvent(hash);
+                    detailIntent.putExtra("cancelNotification", true);
+                    startActivity(detailIntent);
+                }
             }
         }
     };

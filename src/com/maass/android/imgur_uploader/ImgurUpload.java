@@ -61,7 +61,7 @@ public class ImgurUpload extends Service {
 
     public static final String BROADCAST_ACTION = "com.maass.android.imgur_uploader.ImageUploadedEvent";
     private Notification mProgressNotification;
-    private static final int NOTIFICATION_ID = 42;
+    static final int NOTIFICATION_ID = 42;
     private NotificationManager mNotificationManager;
 
     private Map<String, String> mImgurResponse;
@@ -121,6 +121,8 @@ public class ImgurUpload extends Service {
         final Intent notificationIntent = new Intent(getBaseContext(),
             ImageDetails.class);
 
+        boolean imageSuccess = false;
+
         if (mImgurResponse == null) {
             notificationMessage = getString(R.string.connection_failed);
         } else if (mImgurResponse.get("error") != null) {
@@ -165,8 +167,7 @@ public class ImgurUpload extends Service {
             data.close();
             histData.close();
 
-            // if the main activity is already open then refresh the gridview
-            sendBroadcast(new Intent(BROADCAST_ACTION));
+            imageSuccess = true;
         }
 
         //assemble notification
@@ -178,6 +179,14 @@ public class ImgurUpload extends Service {
         notification.flags |= Notification.FLAG_AUTO_CANCEL;
         mNotificationManager.notify(NOTIFICATION_ID, notification);
 
+        //we do this here so that the notification is created before we view details
+        //so we can cancel it
+        if (imageSuccess) {
+            // if the main activity is already open then refresh the gridview
+            final Intent intent = new Intent(BROADCAST_ACTION);
+            intent.putExtra("hash", mImgurResponse.get("image_hash"));
+            sendBroadcast(intent);
+        }
     }
 
     /**

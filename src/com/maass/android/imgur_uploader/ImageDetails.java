@@ -9,6 +9,8 @@ import java.net.URL;
 import org.json.JSONObject;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -107,12 +109,18 @@ public class ImageDetails extends Activity {
                 }
             });
 
+        final NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
         //load image info from intent extras
         final Intent intent = getIntent();
         mImageHash = intent.getStringExtra("hash");
         mImageUrl = intent.getStringExtra("image_url");
         mImageDeleteHash = intent.getStringExtra("delete_hash");
         mImageLocalThumbnail = intent.getStringExtra("local_thumbnail");
+
+        if (intent.hasExtra("cancelNotification")) {
+            mNotificationManager.cancelAll();
+        }
 
         //set items in view to image details
         ((ImageView) findViewById(R.id.ImageDetailsImage)).setImageURI(Uri
