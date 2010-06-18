@@ -9,7 +9,7 @@
 	<ImageView
 		android:adjustViewBounds="false"
 		android:cropToPadding="false"
-		android:id="@+id/ThumbnailImage" android:background="@android:color/white" android:layout_height="wrap_content" android:layout_width="wrap_content" android:padding="3px"/>
+		android:id="@+id/ThumbnailImage" android:layout_height="wrap_content" android:layout_width="wrap_content" android:padding="3px"/>
 	
 		
 </AbsoluteLayout>
